@@ -22,9 +22,8 @@ A powerful command-line interface for searching through various embedding collec
 ## Prerequisites
 
 - Python 3.12 or higher
-- ChromaDB server running on localhost:8100
+- ChromaDB server (configured via .env file)
 - OpenAI API key
-- MariaDB database (optional, for additional features)
 
 ## Installation
 
@@ -43,10 +42,22 @@ pip install -r requirements.txt
 
 ### 3. Configure Environment Variables
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root based on `.env.example`:
 
 ```bash
+# Copy the example file
+cp .env.example .env
+```
+
+Then edit `.env` with your configuration:
+
+```bash
+# OpenAI API Key for embeddings creation
 OPENAI_API_KEY=your_openai_api_key_here
+
+# ChromaDB server configuration
+CHROMADB_HOST=localhost
+CHROMADB_PORT=8000
 ```
 
 ### 4. Configure Settings
@@ -213,7 +224,7 @@ The Dockerfile includes:
 ### Components
 
 - **OpenAI Embedding Function**: Custom implementation of ChromaDB's embedding interface using OpenAI's API
-- **ChromaDB Client**: HTTP client connecting to ChromaDB server on localhost:8100
+- **ChromaDB Client**: HTTP client connecting to ChromaDB server (configured via CHROMADB_HOST and CHROMADB_PORT environment variables)
 - **Collections**: Pre-defined vector collections for different entity types
 - **Search Function**: Configurable semantic search with performance tracking
 - **List Function**: Collection content viewer with metadata support
@@ -251,17 +262,21 @@ See [requirements.txt](requirements.txt) for the complete list of Python depende
 - python-dotenv >= 1.0.0
 - psutil >= 5.9.0
 - requests
-- pymysql
 - pytz
 
 ## Troubleshooting
 
 ### ChromaDB Connection Issues
 
-Ensure ChromaDB server is running on localhost:8100:
+Ensure ChromaDB server is running and accessible:
 ```bash
-# Check if ChromaDB is accessible
-curl http://localhost:8100/api/v1/heartbeat
+# Check if ChromaDB is accessible (using your configured host/port)
+curl http://${CHROMADB_HOST}:${CHROMADB_PORT}/api/v1/heartbeat
+```
+
+Verify your ChromaDB configuration in `.env`:
+```bash
+cat .env | grep CHROMADB
 ```
 
 ### OpenAI API Key Not Found
