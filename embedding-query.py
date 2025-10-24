@@ -218,17 +218,64 @@ for i in range(136, 140):
 
 current_search_type = "topic"  # Default to query search
 current_collection = topics
+
 while True:
     strquery = input("\nEnter your " + current_search_type + " search query (or 'quit' to exit): ").strip()
-    
+
     if strquery.lower() in ['quit', 'exit', 'q']:
         print("Goodbye!")
         break
-    
+
     if strquery:
         # Check if the first word is "topic" or "movie"
         words = strquery.split()
-        if words and words[0].lower() == "topic":
+        if words and words[0].lower() == "setting":
+            # Handle runtime settings changes
+            if len(words) >= 4:
+                setting_category = words[1].lower()
+                setting_name = words[2].lower()
+
+                if setting_category == "list" and setting_name == "limit":
+                    try:
+                        new_value = int(words[3])
+                        if new_value > 0:
+                            LIST_DOCUMENT_LIMIT = new_value
+                            print(f"LIST_DOCUMENT_LIMIT updated to {LIST_DOCUMENT_LIMIT}")
+                        else:
+                            print("Error: limit value must be positive")
+                    except ValueError:
+                        print("Error: invalid limit value, must be an integer")
+                elif setting_category == "search" and setting_name == "n_result":
+                    try:
+                        new_value = int(words[3])
+                        if new_value > 0:
+                            SEARCH_N_RESULTS = new_value
+                            print(f"SEARCH_N_RESULTS updated to {SEARCH_N_RESULTS}")
+                        else:
+                            print("Error: n_result value must be positive")
+                    except ValueError:
+                        print("Error: invalid n_result value, must be an integer")
+                elif setting_category == "search" and setting_name == "threshold":
+                    try:
+                        new_value = float(words[3])
+                        SEARCH_SIMILARITY_THRESHOLD = new_value
+                        print(f"SEARCH_SIMILARITY_THRESHOLD updated to {SEARCH_SIMILARITY_THRESHOLD}")
+                    except ValueError:
+                        print("Error: invalid threshold value, must be a number")
+                else:
+                    print(f"Error: unknown setting '{setting_category} {setting_name}'")
+                    print("Valid settings:")
+                    print("  - setting list limit <value>")
+                    print("  - setting search n_result <value>")
+                    print("  - setting search threshold <value>")
+            else:
+                print("Error: invalid setting command format")
+                print("Usage:")
+                print("  - setting list limit <value>")
+                print("  - setting search n_result <value>")
+                print("  - setting search threshold <value>")
+            continue
+        elif words and words[0].lower() == "topic":
             current_search_type = "topic"
             current_collection = topics
             # Remove "topic" from the query and call topic search
