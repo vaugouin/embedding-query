@@ -53,7 +53,10 @@ class OpenAIEmbeddingFunction:
         return f"openai_{self.model.replace('-', '_')}"
 
 # Initialize ChromaDB with persistent storage
-chroma_client = chromadb.HttpClient(host="localhost", port=8100)
+chroma_client = chromadb.HttpClient(
+    host=os.getenv("CHROMADB_HOST", "localhost"), 
+    port=int(os.getenv("CHROMADB_PORT", "8000"))
+)
 
 # Initialize ChromaDB with OpenAI's embedding function
 embedding_function = OpenAIEmbeddingFunction(model="text-embedding-3-large")
