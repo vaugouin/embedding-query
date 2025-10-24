@@ -11,9 +11,21 @@ import psutil
 import citizenphil as cp
 from datetime import datetime, timedelta
 import time
+import configparser
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Load configuration from config.ini
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+# Read search settings
+SEARCH_N_RESULTS = config.getint('search', 'n_results', fallback=1)
+SEARCH_SIMILARITY_THRESHOLD = config.getfloat('search', 'similarity_threshold', fallback=-1)
+
+# Read list settings
+LIST_DOCUMENT_LIMIT = config.getint('list', 'document_limit', fallback=50)
 
 # Set your OpenAI API key from environment variable
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -98,43 +110,64 @@ anonymizedqueries = chroma_client.get_or_create_collection(
 def f_searchembeddings(collection, strquery):
     # Start timing the search operation
     start_time = time.time()
-    
+
     # Query ChromaDB using a text-based search
     results = collection.query(
         query_texts=[strquery],  # Query is converted into a vector
-        n_results=1
+        n_results=SEARCH_N_RESULTS
     )
-    
+
     # End timing and calculate duration
     end_time = time.time()
     search_duration = end_time - start_time
-    
-    # Display detailed information about the first result
+
+    # Apply similarity threshold filtering if enabled
+    filtered_results = {"ids": [[]], "documents": [[]], "distances": [[]]}
     if results["documents"][0]:
+        for i in range(len(results["ids"][0])):
+            distance = results["distances"][0][i]
+            # Filter by threshold if enabled (threshold >= 0)
+            if SEARCH_SIMILARITY_THRESHOLD < 0 or distance <= SEARCH_SIMILARITY_THRESHOLD:
+                filtered_results["ids"][0].append(results["ids"][0][i])
+                filtered_results["documents"][0].append(results["documents"][0][i])
+                filtered_results["distances"][0].append(distance)
+
+    # Display detailed information about the results
+    if filtered_results["documents"][0]:
         print(f"Query on {collection}: {strquery}")
         print(f"Search time: {search_duration:.4f} seconds")
-        print(f"First result ID: {results['ids'][0][0]}")
-        print(f"{collection}: {results['documents'][0][0]}")
-        print(f"Distance: {results['distances'][0][0]:.4f}")
-        #print("---------------")
+        if SEARCH_SIMILARITY_THRESHOLD >= 0:
+            print(f"Similarity threshold: {SEARCH_SIMILARITY_THRESHOLD:.4f}")
+        print(f"Results found: {len(filtered_results['ids'][0])}")
+        print("=" * 50)
+
+        for i in range(len(filtered_results["ids"][0])):
+            print(f"Result {i+1}:")
+            print(f"ID: {filtered_results['ids'][0][i]}")
+            print(f"{collection}: {filtered_results['documents'][0][i]}")
+            print(f"Distance: {filtered_results['distances'][0][i]:.4f}")
+            print("-" * 30)
         print("\n")
     else:
         print(f"No results found for {collection}: {strquery}")
+        if SEARCH_SIMILARITY_THRESHOLD >= 0:
+            print(f"(Similarity threshold: {SEARCH_SIMILARITY_THRESHOLD:.4f})")
+        print("\n")
 
 def f_listembeddings(collection):
     # Start timing the search operation
     start_time = time.time()
-    
-    # List the first 50 documents in the collection and display id and document
-    results = collection.get(limit=50)
-    
+
+    # List the first N documents in the collection and display id and document
+    results = collection.get(limit=LIST_DOCUMENT_LIMIT)
+
     # End timing and calculate duration
     end_time = time.time()
     search_duration = end_time - start_time
-    
-    # Display the first 50 documents with their IDs
+
+    # Display the documents with their IDs
     if results["documents"]:
-        print(f"Listing first 50 documents from {collection}")
+        print(f"Listing first {LIST_DOCUMENT_LIMIT} documents from {collection}")
         print(f"Retrieval time: {search_duration:.4f} seconds")
         print(f"Total documents retrieved: {len(results['documents'])}")
         print("=" * 50)
