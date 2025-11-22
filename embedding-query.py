@@ -7,8 +7,6 @@ import chromadb
 #from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 #pip install psutil
 import psutil
-#import pymysql.cursors
-import citizenphil as cp
 from datetime import datetime, timedelta
 import time
 import configparser
@@ -45,6 +43,22 @@ class OpenAIEmbeddingFunction:
             model=self.model
         )
         # Convert to numpy arrays for ChromaDB compatibility
+        embeddings = [item.embedding for item in response.data]
+        return [np.array(embedding) for embedding in embeddings]
+    
+    def embed_query(self, input):
+        """Generate embedding for a single query text - required by ChromaDB."""
+        # Handle both single string and list inputs
+        if isinstance(input, str):
+            query_input = [input]
+        else:
+            query_input = input
+            
+        response = openai.embeddings.create(
+            input=query_input,
+            model=self.model
+        )
+        # Return as a list of numpy arrays (same format as __call__ method)
         embeddings = [item.embedding for item in response.data]
         return [np.array(embedding) for embedding in embeddings]
     
@@ -222,6 +236,31 @@ for i in range(136, 140):
 current_search_type = "topic"  # Default to query search
 current_collection = topics
 
+def print_available_commands():
+    print("\nAvailable commands:")
+    print("  topic <search terms>   - search in topics collection")
+    print("  movie <search terms>   - search in movies collection")
+    print("  serie <search terms>   - search in series collection")
+    print("  person <search terms>  - search in persons collection")
+    print("  company <search terms> - search in companies collection")
+    print("  network <search terms> - search in networks collection")
+    print("  query <search terms>   - search in anonymized queries collection")
+    print("  list                   - list documents for current collection")
+    print("  setting list limit <value>")
+    print("  setting search n_result <value>")
+    print("  setting search threshold <value>")
+    print("  setting display        - show current settings")
+    print("  quit / exit / q        - exit the program")
+    print("  help                   - show this help message")
+
+def print_current_settings():
+    print("\nCurrent settings:")
+    print(f"  LIST_DOCUMENT_LIMIT        = {LIST_DOCUMENT_LIMIT}")
+    print(f"  SEARCH_N_RESULTS           = {SEARCH_N_RESULTS}")
+    print(f"  SEARCH_SIMILARITY_THRESHOLD = {SEARCH_SIMILARITY_THRESHOLD}")
+
+print_available_commands()
+
 while True:
     strquery = input("\nEnter your " + current_search_type + " search query (or 'quit' to exit): ").strip()
 
@@ -234,7 +273,9 @@ while True:
         words = strquery.split()
         if words and words[0].lower() == "setting":
             # Handle runtime settings changes
-            if len(words) >= 4:
+            if len(words) >= 2 and words[1].lower() == "display":
+                print_current_settings()
+            elif len(words) >= 4:
                 setting_category = words[1].lower()
                 setting_name = words[2].lower()
 
@@ -277,6 +318,9 @@ while True:
                 print("  - setting list limit <value>")
                 print("  - setting search n_result <value>")
                 print("  - setting search threshold <value>")
+            continue
+        elif words and words[0].lower() == "help":
+            print_available_commands()
             continue
         elif words and words[0].lower() == "topic":
             current_search_type = "topic"
