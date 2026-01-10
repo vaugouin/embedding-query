@@ -246,6 +246,7 @@ def print_available_commands():
     print("  network <search terms> - search in networks collection")
     print("  query <search terms>   - search in anonymized queries collection")
     print("  list                   - list documents for current collection")
+    print("  collections            - list available collections")
     print("  setting list limit <value>")
     print("  setting search n_result <value>")
     print("  setting search threshold <value>")
@@ -258,6 +259,124 @@ def print_current_settings():
     print(f"  LIST_DOCUMENT_LIMIT        = {LIST_DOCUMENT_LIMIT}")
     print(f"  SEARCH_N_RESULTS           = {SEARCH_N_RESULTS}")
     print(f"  SEARCH_SIMILARITY_THRESHOLD = {SEARCH_SIMILARITY_THRESHOLD}")
+
+def print_available_collections():
+    def _safe_str(value):
+        try:
+            return str(value)
+        except Exception:
+            return repr(value)
+
+    def _safe_get_collection(name):
+        try:
+            return chroma_client.get_collection(name=name, embedding_function=embedding_function)
+        except Exception:
+            try:
+                return chroma_client.get_collection(name=name)
+            except Exception:
+                return None
+
+    def _extract_metadata(collection_obj):
+        metadata = None
+        for attr in ("metadata", "metadatas"):
+            if hasattr(collection_obj, attr):
+                try:
+                    metadata = getattr(collection_obj, attr)
+                    break
+                except Exception:
+                    pass
+        if callable(metadata):
+            try:
+                metadata = metadata()
+            except Exception:
+                metadata = None
+        if metadata is None:
+            metadata = {}
+        if not isinstance(metadata, dict):
+            try:
+                metadata = dict(metadata)
+            except Exception:
+                metadata = {"raw": _safe_str(metadata)}
+        return metadata
+
+    def _extract_other_info(collection_obj):
+        info = {}
+        for attr in ("id", "name", "tenant", "database"):
+            if hasattr(collection_obj, attr):
+                try:
+                    info[attr] = getattr(collection_obj, attr)
+                except Exception:
+                    pass
+        try:
+            d = getattr(collection_obj, "__dict__", {})
+            for k, v in d.items():
+                if k in ("_embedding_function", "embedding_function"):
+                    continue
+                if k in info:
+                    continue
+                if isinstance(v, (str, int, float, bool)) or v is None:
+                    info[k] = v
+        except Exception:
+            pass
+        return info
+
+    try:
+        collections = chroma_client.list_collections()
+    except Exception as e:
+        print(f"Error listing collections: {_safe_str(e)}")
+        return
+
+    if not collections:
+        print("No collections found in ChromaDB.")
+        return
+
+    print("\nAvailable ChromaDB collections:")
+    print("=" * 50)
+
+    for entry in collections:
+        if isinstance(entry, str):
+            name = entry
+            collection_obj = _safe_get_collection(name)
+        else:
+            name = getattr(entry, "name", None) or _safe_str(entry)
+            collection_obj = entry
+
+        if collection_obj is None:
+            print(f"Collection: {name}")
+            print("  Error: unable to load collection details")
+            print("-" * 30)
+            continue
+
+        metadata = _extract_metadata(collection_obj)
+
+        try:
+            count = collection_obj.count()
+        except Exception:
+            count = "unknown"
+
+        index_used = metadata.get("index") or metadata.get("index_type") or metadata.get("chroma:index")
+        if index_used is None:
+            index_used = "hnsw" if any(k.startswith("hnsw:") for k in metadata.keys()) else "unknown"
+
+        distance_function = (
+            metadata.get("hnsw:space")
+            or metadata.get("distance")
+            or metadata.get("distance_function")
+            or metadata.get("metric")
+            or "unknown"
+        )
+
+        print(f"Collection: {name}")
+        print(f"  Index: {index_used}")
+        print(f"  Distance: {distance_function}")
+        print(f"  Document count: {count}")
+        print(f"  Metadata: {metadata}")
+
+        other_info = _extract_other_info(collection_obj)
+        if other_info:
+            print(f"  Other info: {other_info}")
+
+        print("-" * 30)
 
 print_available_commands()
 
@@ -321,6 +440,9 @@ while True:
             continue
         elif words and words[0].lower() == "help":
             print_available_commands()
+            continue
+        elif words and words[0].lower() == "collections":
+            print_available_collections()
             continue
         elif words and words[0].lower() == "topic":
             current_search_type = "topic"
