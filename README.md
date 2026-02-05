@@ -7,6 +7,8 @@ A powerful command-line interface for searching through various embedding collec
 - **Semantic Search**: Leverage OpenAI's text-embedding-3-large model for advanced similarity-based searches
 - **Multiple Collections**: Search across different entity types:
   - Topics
+  - Topics
+  - Locations
   - Movies
   - TV Series
   - Persons
@@ -128,6 +130,9 @@ Enter your topic search query: company warner bros
 # Search networks
 Enter your topic search query: network netflix
 
+# Search locations
+Enter your topic search query: location paris
+
 # Search anonymized queries
 Enter your topic search query: query what is the best movie
 ```
@@ -136,167 +141,129 @@ Enter your topic search query: query what is the best movie
 
 Once you've set a collection, subsequent searches will use that collection:
 
+# Embedding Query
+
+A command-line tool for semantic search over embedding collections using ChromaDB and modern embedding providers. This project ships a flexible CLI that lets you search multiple collections (topics, movies, series, persons, companies, networks, anonymized queries) and tune runtime settings.
+
+## Features
+
+- **Semantic Search**: Uses OpenAI embeddings (configurable) for similarity-based retrieval.
+- **Multiple Collections**: Topics, Locations, Movies, TV Series, Persons, Companies, Networks, Anonymized Queries.
+- **ChromaDB Integration**: Persistent vector storage with HTTP client support.
+- **Configurable Settings**: Adjust search behavior via `config.ini` or runtime commands.
+- **Performance Monitoring**: Query timing and memory usage display.
+- **Docker Support**: Container image for easy deployment.
+- **Interactive CLI**: Switch collections and run context-aware searches interactively.
+
+## Prerequisites
+
+- Python 3.12 or higher
+- ChromaDB server (if using a remote/persistent store)
+- OpenAI API key (for embeddings by default)
+
+## Installation
+
 ```bash
-# After typing "movie inception", the collection is now movies
-Enter your movie search query: the matrix
-Enter your movie search query: avatar
+git clone https://github.com/vaugouin/embedding-query.git
+cd embedding-query
+pip install -r requirements.txt
 ```
 
-#### List Collection Contents
+## Configuration
 
-View the first N documents (configured by `document_limit`) in the current collection:
+Copy the example configuration files and update them for your environment:
 
 ```bash
-Enter your topic search query: topic list
-Enter your movie search query: movie list
+cp config.example.ini config.ini
+cp citizenphilsecrets.example.py citizenphilsecrets.py  # optional
 ```
 
-### Runtime Settings
-
-You can modify settings during runtime without restarting the application:
+Create a `.env` (or edit) with your keys:
 
 ```bash
-# Set number of search results
+OPENAI_API_KEY=your_openai_api_key_here
+CHROMADB_HOST=localhost
+CHROMADB_PORT=8000
+```
+
+See `config.example.ini` for runtime options such as `n_results`, `similarity_threshold`, and `document_limit`.
+
+## Usage
+
+Start the CLI:
+
+```bash
+python embedding-query.py
+```
+
+The CLI understands collection-prefixed queries like `movie inception`, `person ada lovelace`, `topic quantum computing`, and `topic list` to show collection contents.
+
+Modify runtime settings without restarting:
+
+```bash
 setting search n_result 5
-
-# Set similarity threshold
 setting search threshold 0.8
-
-# Set document list limit
 setting list limit 100
 ```
 
-### Exit the Application
+Exit with `quit`, `exit`, or `q`.
 
-```bash
-quit
-# or
-exit
-# or
-q
-```
+## Using Anthropic Claude
+
+This project primarily uses OpenAI embeddings but you may use Anthropic Claude for text-generation or assistant-style workflows. See `CLAUDE.md` for setup and examples.
 
 ## Docker Deployment
 
-### Build the Docker Image
-
 ```bash
 docker build -t embedding-query .
+docker run -it --env-file .env -v $(pwd)/config.ini:/app/config.ini embedding-query
 ```
-
-### Run the Container
-
-```bash
-docker run -it \
-  --env-file .env \
-  -v $(pwd)/config.ini:/app/config.ini \
-  embedding-query
-```
-
-The Dockerfile includes:
-- Python 3.12 slim base image
-- SQLite 3.40.1+ for ChromaDB compatibility
-- All required dependencies
 
 ## Configuration Reference
 
-### Search Settings
+Search settings:
 
-| Setting | Description | Default | Range |
-|---------|-------------|---------|-------|
-| `n_results` | Number of search results to return | 1 | 1 to ∞ |
-| `similarity_threshold` | Maximum distance for filtering results | -1 (disabled) | -1 or 0.0 to 2.0 |
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `n_results` | Number of search results to return | 10|
+| `similarity_threshold` | Maximum distance for filtering results (`-1` disables) | -1 |
 
-**Similarity Threshold Guide:**
-- `-1`: Disabled, show all results
-- `0.5`: Very strict, only highly similar results
-- `1.0`: Moderate, reasonably similar results
-- `1.5`: Lenient, allows less similar results
+List settings:
 
-### List Settings
-
-| Setting | Description | Default | Range |
-|---------|-------------|---------|-------|
-| `document_limit` | Number of documents to display when listing | 50 | 1 to ∞ |
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `document_limit` | Number of documents to display when listing | 50 |
 
 ## Architecture
 
-### Components
+- **OpenAI Embedding Function**: Integrates OpenAI embeddings into ChromaDB-compatible interface.
+- **ChromaDB Client**: HTTP client connecting to a ChromaDB server.
+- **Collections & Search**: Pre-defined collections and a configurable search pipeline.
 
-- **OpenAI Embedding Function**: Custom implementation of ChromaDB's embedding interface using OpenAI's API
-- **ChromaDB Client**: HTTP client connecting to ChromaDB server (configured via CHROMADB_HOST and CHROMADB_PORT environment variables)
-- **Collections**: Pre-defined vector collections for different entity types
-- **Search Function**: Configurable semantic search with performance tracking
-- **List Function**: Collection content viewer with metadata support
+## Troubleshooting
 
-### Memory Monitoring
+Check ChromaDB connectivity:
 
-The application displays memory usage on startup:
-- Total Memory
-- Available Memory
-- Used Memory
-- Free Memory
-- Memory Usage Percentage
+```bash
+curl http://${CHROMADB_HOST}:${CHROMADB_PORT}/api/v1/heartbeat
+```
 
-## Performance
+Check that `OPENAI_API_KEY` is present in your environment.
 
-Search operations include timing information:
-- Query execution time
-- Number of results found
-- Distance scores for each result
-- Similarity threshold application (if enabled)
+## Requirements
+
+See [requirements.txt](requirements.txt) for dependencies.
+
+## Contributing
+
+Contributions welcome — open a Pull Request.
+
+## Support
+
+For issues, visit the [GitHub repository](https://github.com/vaugouin/embedding-query).
 
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 Copyright (c) 2025 Philippe Vaugouin
-
-## Requirements
-
-See [requirements.txt](requirements.txt) for the complete list of Python dependencies:
-- openai >= 1.0.0
-- chromadb >= 0.4.0
-- pandas >= 1.5.0
-- numpy >= 1.24.0
-- python-dotenv >= 1.0.0
-- psutil >= 5.9.0
-- requests
-- pytz
-
-## Troubleshooting
-
-### ChromaDB Connection Issues
-
-Ensure ChromaDB server is running and accessible:
-```bash
-# Check if ChromaDB is accessible (using your configured host/port)
-curl http://${CHROMADB_HOST}:${CHROMADB_PORT}/api/v1/heartbeat
-```
-
-Verify your ChromaDB configuration in `.env`:
-```bash
-cat .env | grep CHROMADB
-```
-
-### OpenAI API Key Not Found
-
-Verify your `.env` file contains the correct API key:
-```bash
-cat .env | grep OPENAI_API_KEY
-```
-
-### SQLite Version Issues
-
-If running in Docker, the Dockerfile installs SQLite 3.40.1. For local installations, ensure SQLite >= 3.35.0:
-```bash
-python -c "import sqlite3; print(sqlite3.sqlite_version)"
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Support
-
-For issues, questions, or contributions, please visit the [GitHub repository](https://github.com/vaugouin/embedding-query).
