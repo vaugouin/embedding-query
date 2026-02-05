@@ -118,6 +118,21 @@ networks = chroma_client.get_or_create_collection(
     name=strentitycollection,
     embedding_function=embedding_function  # Custom embedding model
 )
+strentitycollection = "characters"
+characters = chroma_client.get_or_create_collection(
+    name=strentitycollection,
+    embedding_function=embedding_function  # Custom embedding model
+)
+strentitycollection = "groups"
+groups = chroma_client.get_or_create_collection(
+    name=strentitycollection,
+    embedding_function=embedding_function  # Custom embedding model
+)
+strentitycollection = "locations"
+locations = chroma_client.get_or_create_collection(
+    name=strentitycollection,
+    embedding_function=embedding_function  # Custom embedding model
+)
 #Anonymized queries collection
 anonymizedqueries = chroma_client.get_or_create_collection(
     name="anonymizedqueries",
@@ -244,6 +259,7 @@ def print_available_commands():
     print("  person <search terms>  - search in persons collection")
     print("  company <search terms> - search in companies collection")
     print("  network <search terms> - search in networks collection")
+    print("  location <search terms> - search in locations collection")
     print("  query <search terms>   - search in anonymized queries collection")
     print("  list                   - list documents for current collection")
     print("  collections            - list available collections")
@@ -468,6 +484,10 @@ while True:
         elif words and words[0].lower() == "network":
             current_search_type = "network"
             current_collection = networks
+            strquery = " ".join(words[1:]).strip()
+        elif words and words[0].lower() == "location":
+            current_search_type = "location"
+            current_collection = locations
             strquery = " ".join(words[1:]).strip()
         elif words and words[0].lower() == "query":
             current_search_type = "query"
