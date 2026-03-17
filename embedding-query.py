@@ -22,8 +22,8 @@ config.read('config.ini')
 SEARCH_N_RESULTS = config.getint('search', 'n_results', fallback=1)
 SEARCH_SIMILARITY_THRESHOLD = config.getfloat('search', 'similarity_threshold', fallback=-1)
 
-# Read list settings
-LIST_DOCUMENT_LIMIT = config.getint('list', 'document_limit', fallback=50)
+# Read ls settings
+LIST_DOCUMENT_LIMIT = config.getint('ls', 'document_limit', fallback=50)
 
 # Set your OpenAI API key from environment variable
 openai.api_key = os.getenv("OPENAI_API_KEY")
