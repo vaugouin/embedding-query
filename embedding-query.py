@@ -261,9 +261,9 @@ def print_available_commands():
     print("  network <search terms> - search in networks collection")
     print("  location <search terms> - search in locations collection")
     print("  query <search terms>   - search in anonymized queries collection")
-    print("  list                   - list documents for current collection")
+    print("  ls                     - list documents for current collection")
     print("  collections            - list available collections")
-    print("  setting list limit <value>")
+    print("  setting ls limit <value>")
     print("  setting search n_result <value>")
     print("  setting search threshold <value>")
     print("  setting display        - show current settings")
@@ -414,7 +414,7 @@ while True:
                 setting_category = words[1].lower()
                 setting_name = words[2].lower()
 
-                if setting_category == "list" and setting_name == "limit":
+                if setting_category == "ls" and setting_name == "limit":
                     try:
                         new_value = int(words[3])
                         if new_value > 0:
@@ -444,13 +444,13 @@ while True:
                 else:
                     print(f"Error: unknown setting '{setting_category} {setting_name}'")
                     print("Valid settings:")
-                    print("  - setting list limit <value>")
+                    print("  - setting ls limit <value>")
                     print("  - setting search n_result <value>")
                     print("  - setting search threshold <value>")
             else:
                 print("Error: invalid setting command format")
                 print("Usage:")
-                print("  - setting list limit <value>")
+                print("  - setting ls limit <value>")
                 print("  - setting search n_result <value>")
                 print("  - setting search threshold <value>")
             continue
@@ -494,7 +494,7 @@ while True:
             current_collection = anonymizedqueries
             strquery = " ".join(words[1:]).strip()
         if strquery:
-            if strquery.lower() == "list":
+            if strquery.lower() == "ls":
                 f_listembeddings(current_collection)
             else:
                 f_searchembeddings(current_collection, strquery)
