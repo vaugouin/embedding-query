@@ -82,7 +82,7 @@ n_results = 1
 # Lower values = stricter matching
 similarity_threshold = -1
 
-[list]
+[ls]
 # Number of documents to display when listing (default: 50)
 document_limit = 50
 ```
@@ -196,14 +196,14 @@ Start the CLI:
 python embedding-query.py
 ```
 
-The CLI understands collection-prefixed queries like `movie inception`, `person ada lovelace`, `topic quantum computing`, and `topic list` to show collection contents.
+The CLI understands collection-prefixed queries like `movie inception`, `person ada lovelace`, `topic quantum computing`, and `topic ls` to show collection contents.
 
 Modify runtime settings without restarting:
 
 ```bash
 setting search n_result 5
 setting search threshold 0.8
-setting list limit 100
+setting ls limit 100
 ```
 
 Exit with `quit`, `exit`, or `q`.
