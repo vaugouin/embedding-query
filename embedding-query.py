@@ -87,55 +87,48 @@ print(f"Used Memory: {memory_info.used / (1024 ** 3):.2f} GB")
 print(f"Free Memory: {memory_info.free / (1024 ** 3):.2f} GB")
 print(f"Memory Usage: {memory_info.percent}%")
 
-# Create or load a collection with the custom embedding function
-strentitycollection = "topics"
-topics = chroma_client.get_or_create_collection(
-    name=strentitycollection,
-    embedding_function=embedding_function  # Custom embedding model
-)
-strentitycollection = "movies"
-movies = chroma_client.get_or_create_collection(
-    name=strentitycollection,
-    embedding_function=embedding_function  # Custom embedding model
-)
-strentitycollection = "series"
-series = chroma_client.get_or_create_collection(
-    name=strentitycollection,
-    embedding_function=embedding_function  # Custom embedding model
-)
-strentitycollection = "persons"
-persons = chroma_client.get_or_create_collection(
-    name=strentitycollection,
-    embedding_function=embedding_function  # Custom embedding model
-)
-strentitycollection = "companies"
-companies = chroma_client.get_or_create_collection(
-    name=strentitycollection,
-    embedding_function=embedding_function  # Custom embedding model
-)
-strentitycollection = "networks"
-networks = chroma_client.get_or_create_collection(
-    name=strentitycollection,
-    embedding_function=embedding_function  # Custom embedding model
-)
-strentitycollection = "characters"
-characters = chroma_client.get_or_create_collection(
-    name=strentitycollection,
-    embedding_function=embedding_function  # Custom embedding model
-)
-strentitycollection = "groups"
-groups = chroma_client.get_or_create_collection(
-    name=strentitycollection,
-    embedding_function=embedding_function  # Custom embedding model
-)
-strentitycollection = "locations"
-locations = chroma_client.get_or_create_collection(
-    name=strentitycollection,
-    embedding_function=embedding_function  # Custom embedding model
-)
+# Create or load entity collections with the custom embedding function
+CHROMADB_COLLECTIONS_BY_NAME = {
+    name: chroma_client.get_or_create_collection(name=name, embedding_function=embedding_function)
+    for name in [
+        "persons",
+        "movies",
+        "series",
+        "companies",
+        "networks",
+        "topics",
+        "locations",
+        "groups",
+        "characters",
+        "lists",
+        "collections",
+        "deaths",
+        "awards",
+        "nominations",
+        "movements",
+    ]
+}
+
+topics = CHROMADB_COLLECTIONS_BY_NAME["topics"]
+movies = CHROMADB_COLLECTIONS_BY_NAME["movies"]
+series = CHROMADB_COLLECTIONS_BY_NAME["series"]
+persons = CHROMADB_COLLECTIONS_BY_NAME["persons"]
+companies = CHROMADB_COLLECTIONS_BY_NAME["companies"]
+networks = CHROMADB_COLLECTIONS_BY_NAME["networks"]
+characters = CHROMADB_COLLECTIONS_BY_NAME["characters"]
+groups = CHROMADB_COLLECTIONS_BY_NAME["groups"]
+locations = CHROMADB_COLLECTIONS_BY_NAME["locations"]
+lists = CHROMADB_COLLECTIONS_BY_NAME["lists"]
+collections = CHROMADB_COLLECTIONS_BY_NAME["collections"]
+deaths = CHROMADB_COLLECTIONS_BY_NAME["deaths"]
+awards = CHROMADB_COLLECTIONS_BY_NAME["awards"]
+nominations = CHROMADB_COLLECTIONS_BY_NAME["nominations"]
+movements = CHROMADB_COLLECTIONS_BY_NAME["movements"]
+
 #Anonymized queries collection
+strentitycollection = "anonymizedqueries"
 anonymizedqueries = chroma_client.get_or_create_collection(
-    name="anonymizedqueries",
+    name=strentitycollection,
     embedding_function=embedding_function  # Custom embedding model
 )
 
@@ -260,9 +253,17 @@ def print_available_commands():
     print("  company <search terms> - search in companies collection")
     print("  network <search terms> - search in networks collection")
     print("  location <search terms> - search in locations collection")
+    print("  character <search terms> - search in characters collection")
+    print("  group <search terms>   - search in groups collection")
+    print("  list <search terms>    - search in lists collection")
+    print("  collection <search terms> - search in collections collection")
+    print("  death <search terms>   - search in deaths collection")
+    print("  award <search terms>   - search in awards collection")
+    print("  nomination <search terms> - search in nominations collection")
+    print("  movement <search terms> - search in movements collection")
     print("  query <search terms>   - search in anonymized queries collection")
     print("  ls                     - list documents for current collection")
-    print("  collections            - list available collections")
+    print("  setting collections    - list available collections")
     print("  setting ls limit <value>")
     print("  setting search n_result <value>")
     print("  setting search threshold <value>")
@@ -410,6 +411,8 @@ while True:
             # Handle runtime settings changes
             if len(words) >= 2 and words[1].lower() == "display":
                 print_current_settings()
+            elif len(words) >= 2 and words[1].lower() == "collections":
+                print_available_collections()
             elif len(words) >= 4:
                 setting_category = words[1].lower()
                 setting_name = words[2].lower()
@@ -444,21 +447,20 @@ while True:
                 else:
                     print(f"Error: unknown setting '{setting_category} {setting_name}'")
                     print("Valid settings:")
+                    print("  - setting collections")
                     print("  - setting ls limit <value>")
                     print("  - setting search n_result <value>")
                     print("  - setting search threshold <value>")
             else:
                 print("Error: invalid setting command format")
                 print("Usage:")
+                print("  - setting collections")
                 print("  - setting ls limit <value>")
                 print("  - setting search n_result <value>")
                 print("  - setting search threshold <value>")
             continue
         elif words and words[0].lower() == "help":
             print_available_commands()
-            continue
-        elif words and words[0].lower() == "collections":
-            print_available_collections()
             continue
         elif words and words[0].lower() == "topic":
             current_search_type = "topic"
@@ -488,6 +490,38 @@ while True:
         elif words and words[0].lower() == "location":
             current_search_type = "location"
             current_collection = locations
+            strquery = " ".join(words[1:]).strip()
+        elif words and words[0].lower() == "character":
+            current_search_type = "character"
+            current_collection = characters
+            strquery = " ".join(words[1:]).strip()
+        elif words and words[0].lower() == "group":
+            current_search_type = "group"
+            current_collection = groups
+            strquery = " ".join(words[1:]).strip()
+        elif words and words[0].lower() == "list":
+            current_search_type = "list"
+            current_collection = lists
+            strquery = " ".join(words[1:]).strip()
+        elif words and words[0].lower() == "collection":
+            current_search_type = "collection"
+            current_collection = collections
+            strquery = " ".join(words[1:]).strip()
+        elif words and words[0].lower() == "death":
+            current_search_type = "death"
+            current_collection = deaths
+            strquery = " ".join(words[1:]).strip()
+        elif words and words[0].lower() == "award":
+            current_search_type = "award"
+            current_collection = awards
+            strquery = " ".join(words[1:]).strip()
+        elif words and words[0].lower() == "nomination":
+            current_search_type = "nomination"
+            current_collection = nominations
+            strquery = " ".join(words[1:]).strip()
+        elif words and words[0].lower() == "movement":
+            current_search_type = "movement"
+            current_collection = movements
             strquery = " ".join(words[1:]).strip()
         elif words and words[0].lower() == "query":
             current_search_type = "query"
