@@ -7,13 +7,20 @@ A powerful command-line interface for searching through various embedding collec
 - **Semantic Search**: Leverage OpenAI's text-embedding-3-large model for advanced similarity-based searches
 - **Multiple Collections**: Search across different entity types:
   - Topics
-  - Topics
   - Locations
   - Movies
   - TV Series
   - Persons
   - Companies
   - Networks
+  - Characters
+  - Groups
+  - Lists
+  - Collections
+  - Deaths
+  - Awards
+  - Nominations
+  - Movements
   - Anonymized Queries
 - **ChromaDB Integration**: Persistent vector storage with HTTP client support
 - **Configurable Settings**: Customize search behavior via configuration file or runtime commands
@@ -82,7 +89,7 @@ n_results = 1
 # Lower values = stricter matching
 similarity_threshold = -1
 
-[ls]
+[list]
 # Number of documents to display when listing (default: 50)
 document_limit = 50
 ```
@@ -133,6 +140,30 @@ Enter your topic search query: network netflix
 # Search locations
 Enter your topic search query: location paris
 
+# Search characters
+Enter your topic search query: character walter white
+
+# Search groups
+Enter your topic search query: group the avengers
+
+# Search lists
+Enter your topic search query: list best sci fi
+
+# Search collections
+Enter your topic search query: collection imdb_top_250
+
+# Search deaths
+Enter your topic search query: death ned stark
+
+# Search awards
+Enter your topic search query: award academy awards
+
+# Search nominations
+Enter your topic search query: nomination best picture
+
+# Search movements
+Enter your topic search query: movement french new wave
+
 # Search anonymized queries
 Enter your topic search query: query what is the best movie
 ```
@@ -141,62 +172,11 @@ Enter your topic search query: query what is the best movie
 
 Once you've set a collection, subsequent searches will use that collection:
 
-# Embedding Query
-
-A command-line tool for semantic search over embedding collections using ChromaDB and modern embedding providers. This project ships a flexible CLI that lets you search multiple collections (topics, movies, series, persons, companies, networks, anonymized queries) and tune runtime settings.
-
-## Features
-
-- **Semantic Search**: Uses OpenAI embeddings (configurable) for similarity-based retrieval.
-- **Multiple Collections**: Topics, Locations, Movies, TV Series, Persons, Companies, Networks, Anonymized Queries.
-- **ChromaDB Integration**: Persistent vector storage with HTTP client support.
-- **Configurable Settings**: Adjust search behavior via `config.ini` or runtime commands.
-- **Performance Monitoring**: Query timing and memory usage display.
-- **Docker Support**: Container image for easy deployment.
-- **Interactive CLI**: Switch collections and run context-aware searches interactively.
-
-## Prerequisites
-
-- Python 3.12 or higher
-- ChromaDB server (if using a remote/persistent store)
-- OpenAI API key (for embeddings by default)
-
-## Installation
+Use `ls` to list documents in the current collection:
 
 ```bash
-git clone https://github.com/vaugouin/embedding-query.git
-cd embedding-query
-pip install -r requirements.txt
+Enter your topic search query: ls
 ```
-
-## Configuration
-
-Copy the example configuration files and update them for your environment:
-
-```bash
-cp config.example.ini config.ini
-cp citizenphilsecrets.example.py citizenphilsecrets.py  # optional
-```
-
-Create a `.env` (or edit) with your keys:
-
-```bash
-OPENAI_API_KEY=your_openai_api_key_here
-CHROMADB_HOST=localhost
-CHROMADB_PORT=8000
-```
-
-See `config.example.ini` for runtime options such as `n_results`, `similarity_threshold`, and `document_limit`.
-
-## Usage
-
-Start the CLI:
-
-```bash
-python embedding-query.py
-```
-
-The CLI understands collection-prefixed queries like `movie inception`, `person ada lovelace`, `topic quantum computing`, and `topic ls` to show collection contents.
 
 Modify runtime settings without restarting:
 
@@ -204,9 +184,8 @@ Modify runtime settings without restarting:
 setting search n_result 5
 setting search threshold 0.8
 setting ls limit 100
+setting collections
 ```
-
-Exit with `quit`, `exit`, or `q`.
 
 ## Using Anthropic Claude
 
