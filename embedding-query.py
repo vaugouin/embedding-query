@@ -10,7 +10,11 @@ import psutil
 from datetime import datetime, timedelta
 import time
 import configparser
+from rapidfuzz.distance import Levenshtein
 
+def levenshtein_distance(a: str, b: str) -> int:
+    return int(Levenshtein.distance(a or "", b or ""))
+    
 # Load environment variables from .env file
 load_dotenv()
 
@@ -169,7 +173,9 @@ def f_searchembeddings(collection, strquery):
         for i in range(len(filtered_results["ids"][0])):
             print(f"Result {i+1}:")
             print(f"ID: {filtered_results['ids'][0][i]}")
-            print(f"{collection}: {filtered_results['documents'][0][i]}")
+            document = filtered_results["documents"][0][i]
+            lev = levenshtein_distance(strquery, document)
+            print(f"{collection}: {document} [Levenshtein={lev}]")
             print(f"Distance: {filtered_results['distances'][0][i]:.4f}")
             print("-" * 30)
         print("\n")
