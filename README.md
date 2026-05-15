@@ -25,13 +25,14 @@ A powerful command-line interface for searching through various embedding collec
 - **ChromaDB Integration**: Persistent vector storage with HTTP client support
 - **Configurable Settings**: Customize search behavior via configuration file or runtime commands
 - **Performance Monitoring**: Track search times and memory usage
+- **Compact Results Display**: Search results are displayed as a single aligned table (one row per result)
 - **Docker Support**: Easy deployment with containerization
 - **Interactive CLI**: User-friendly command-line interface with collection switching
 
 ## Prerequisites
 
 - Python 3.12 or higher
-- ChromaDB server (configured via .env file)
+- ChromaDB server
 - OpenAI API key
 
 ## Installation
@@ -51,7 +52,7 @@ pip install -r requirements.txt
 
 ### 3. Configure Environment Variables
 
-Create a `.env` file in the project root based on `.env.example`:
+When running locally, you can use a `.env` file for convenience (do not commit it):
 
 ```bash
 # Copy the example file
@@ -89,20 +90,10 @@ n_results = 1
 # Lower values = stricter matching
 similarity_threshold = -1
 
-[list]
+[ls]
 # Number of documents to display when listing (default: 50)
 document_limit = 50
 ```
-
-### 5. Configure Database (Optional)
-
-If using database features, copy and configure the secrets file:
-
-```bash
-cp citizenphilsecrets.example.py citizenphilsecrets.py
-```
-
-Edit `citizenphilsecrets.py` with your database credentials and API keys.
 
 ## Usage
 
@@ -168,6 +159,22 @@ Enter your topic search query: movement french new wave
 Enter your topic search query: query what is the best movie
 ```
 
+### Search Results Output
+
+Search results are displayed in a compact table:
+
+- A **header row** is printed with aligned columns
+- Each result is printed as a **single row**
+- The long overview/summary text is not printed (only the title part is shown)
+
+Columns:
+
+- `#` (result index)
+- `ID`
+- `Title`
+- `Distance` (ChromaDB distance)
+- `Levenshtein` (Levenshtein distance between your query and the extracted title)
+
 #### Continue Searching in Current Collection
 
 Once you've set a collection, subsequent searches will use that collection:
@@ -185,17 +192,34 @@ setting search n_result 5
 setting search threshold 0.8
 setting ls limit 100
 setting collections
+setting display
 ```
 
-## Using Anthropic Claude
+### Collections Listing Output
 
-This project primarily uses OpenAI embeddings but you may use Anthropic Claude for text-generation or assistant-style workflows. See `CLAUDE.md` for setup and examples.
+The `setting collections` command prints a compact table (one row per collection) with aligned columns:
+
+- `Name`
+- `Count`
+- `Index`
+- `Distance`
 
 ## Docker Deployment
 
+Never bake secrets into the Docker image. Do not copy `.env` into the image.
+
+The repository includes a `.dockerignore` that excludes `.env` files from the Docker build context.
+
+At runtime, pass secrets from a host-managed env file using Docker's `--env-file` option. The env file should live outside the app source tree, for example:
+
+`/home/debian/docker/embedding-query/.env`
+
 ```bash
 docker build -t embedding-query .
-docker run -it --env-file .env -v $(pwd)/config.ini:/app/config.ini embedding-query
+docker run -it --rm --network="host" \
+  --env-file /home/debian/docker/embedding-query/.env \
+  -v $(pwd)/config.ini:/app/config.ini \
+  embedding-query
 ```
 
 ## Configuration Reference
@@ -204,7 +228,7 @@ Search settings:
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| `n_results` | Number of search results to return | 10|
+| `n_results` | Number of search results to return | 1 |
 | `similarity_threshold` | Maximum distance for filtering results (`-1` disables) | -1 |
 
 List settings:

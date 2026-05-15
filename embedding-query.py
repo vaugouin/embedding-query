@@ -170,14 +170,58 @@ def f_searchembeddings(collection, strquery):
         print(f"Results found: {len(filtered_results['ids'][0])}")
         print("=" * 50)
 
+        def extract_title(doc: str) -> str:
+            if not doc:
+                return ""
+            title_part = doc.split(":", 1)[0]
+            return title_part.strip()
+
+        rows = []
         for i in range(len(filtered_results["ids"][0])):
-            print(f"Result {i+1}:")
-            print(f"ID: {filtered_results['ids'][0][i]}")
+            doc_id = filtered_results["ids"][0][i]
             document = filtered_results["documents"][0][i]
-            lev = levenshtein_distance(strquery, document)
-            print(f"{collection}: {document} [Levenshtein={lev}]")
-            print(f"Distance: {filtered_results['distances'][0][i]:.4f}")
-            print("-" * 30)
+            title = extract_title(document)
+            lev = levenshtein_distance(strquery, title)
+            distance = filtered_results["distances"][0][i]
+            rows.append(
+                {
+                    "#": str(i + 1),
+                    "ID": str(doc_id),
+                    "Title": title,
+                    "Distance": f"{distance:.4f}",
+                    "Levenshtein": str(lev),
+                }
+            )
+
+        max_title_len = 60
+        headers = ["#", "ID", "Title", "Distance", "Levenshtein"]
+        widths = {h: len(h) for h in headers}
+        for r in rows:
+            for h in headers:
+                value = r[h]
+                if h == "Title" and len(value) > max_title_len:
+                    value = value[: max_title_len - 1] + "…"
+                    r[h] = value
+                widths[h] = max(widths[h], len(value))
+
+        header_line = (
+            f"{headers[0]:>{widths['#']}}  "
+            f"{headers[1]:<{widths['ID']}}  "
+            f"{headers[2]:<{widths['Title']}}  "
+            f"{headers[3]:>{widths['Distance']}}  "
+            f"{headers[4]:>{widths['Levenshtein']}}"
+        )
+        print(header_line)
+        print("-" * len(header_line))
+
+        for r in rows:
+            print(
+                f"{r['#']:>{widths['#']}}  "
+                f"{r['ID']:<{widths['ID']}}  "
+                f"{r['Title']:<{widths['Title']}}  "
+                f"{r['Distance']:>{widths['Distance']}}  "
+                f"{r['Levenshtein']:>{widths['Levenshtein']}}"
+            )
         print("\n")
     else:
         print(f"No results found for {collection}: {strquery}")
@@ -354,8 +398,8 @@ def print_available_collections():
         return
 
     print("\nAvailable ChromaDB collections:")
-    print("=" * 50)
 
+    rows = []
     for entry in collections:
         if isinstance(entry, str):
             name = entry
@@ -365,9 +409,14 @@ def print_available_collections():
             collection_obj = entry
 
         if collection_obj is None:
-            print(f"Collection: {name}")
-            print("  Error: unable to load collection details")
-            print("-" * 30)
+            rows.append(
+                {
+                    "Name": name,
+                    "Count": "unknown",
+                    "Index": "unknown",
+                    "Distance": "unknown",
+                }
+            )
             continue
 
         metadata = _extract_metadata(collection_obj)
@@ -389,17 +438,49 @@ def print_available_collections():
             or "unknown"
         )
 
-        print(f"Collection: {name}")
-        print(f"  Index: {index_used}")
-        print(f"  Distance: {distance_function}")
-        print(f"  Document count: {count}")
-        print(f"  Metadata: {metadata}")
+        rows.append(
+            {
+                "Name": name,
+                "Count": _safe_str(count),
+                "Index": _safe_str(index_used),
+                "Distance": _safe_str(distance_function),
+            }
+        )
 
-        other_info = _extract_other_info(collection_obj)
-        if other_info:
-            print(f"  Other info: {other_info}")
+    headers = ["Name", "Count", "Index", "Distance"]
+    widths = {h: len(h) for h in headers}
+    max_name_len = 30
+    max_index_len = 10
+    max_distance_len = 12
 
-        print("-" * 30)
+    for r in rows:
+        if len(r["Name"]) > max_name_len:
+            r["Name"] = r["Name"][: max_name_len - 1] + "…"
+        if len(r["Index"]) > max_index_len:
+            r["Index"] = r["Index"][: max_index_len - 1] + "…"
+        if len(r["Distance"]) > max_distance_len:
+            r["Distance"] = r["Distance"][: max_distance_len - 1] + "…"
+
+        widths["Name"] = max(widths["Name"], len(r["Name"]))
+        widths["Count"] = max(widths["Count"], len(r["Count"]))
+        widths["Index"] = max(widths["Index"], len(r["Index"]))
+        widths["Distance"] = max(widths["Distance"], len(r["Distance"]))
+
+    header_line = (
+        f"{headers[0]:<{widths['Name']}}  "
+        f"{headers[1]:>{widths['Count']}}  "
+        f"{headers[2]:<{widths['Index']}}  "
+        f"{headers[3]:<{widths['Distance']}}"
+    )
+    print(header_line)
+
+    for r in rows:
+        print(
+            f"{r['Name']:<{widths['Name']}}  "
+            f"{r['Count']:>{widths['Count']}}  "
+            f"{r['Index']:<{widths['Index']}}  "
+            f"{r['Distance']:<{widths['Distance']}}"
+        )
 
 print_available_commands()
 
