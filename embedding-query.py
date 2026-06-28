@@ -73,7 +73,7 @@ class OpenAIEmbeddingFunction:
 # Initialize ChromaDB with persistent storage
 chroma_client = chromadb.HttpClient(
     host=os.getenv("CHROMADB_HOST", "localhost"), 
-    port=int(os.getenv("CHROMADB_PORT", "8000"))
+    port=int(os.getenv("CHROMADB_PORT", "8100"))
 )
 
 # Initialize ChromaDB with OpenAI's embedding function
