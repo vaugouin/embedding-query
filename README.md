@@ -7,7 +7,8 @@ A powerful command-line interface for searching through various embedding collec
 - **Semantic Search**: Leverage OpenAI's text-embedding-3-large model for advanced similarity-based searches
 - **Multiple Collections**: Search across different entity types:
   - Topics
-  - Locations
+  - Locations (legacy `locations`, keyed on the Wikidata QID, served to API 1.1.18)
+  - Locations read-model (`t2slocations`, keyed on `ID_LOCATION`, command `t2slocation`)
   - Movies
   - TV Series
   - Persons
@@ -128,8 +129,11 @@ Enter your topic search query: company warner bros
 # Search networks
 Enter your topic search query: network netflix
 
-# Search locations
+# Search locations (legacy collection, keyed on the Wikidata QID)
 Enter your topic search query: location paris
+
+# Search the locations read-model (keyed on ID_LOCATION, document "<name>: <type>, <description>")
+Enter your topic search query: t2slocation paris
 
 # Search characters
 Enter your topic search query: character walter white
@@ -165,7 +169,7 @@ Search results are displayed in a compact table:
 
 - A **header row** is printed with aligned columns
 - Each result is printed as a **single row**
-- The long overview/summary text is not printed (only the title part is shown)
+- The text that follows the first `:` is truncated to 60 characters, not dropped
 
 Columns:
 
@@ -174,6 +178,27 @@ Columns:
 - `Title`
 - `Distance` (ChromaDB distance)
 - `Levenshtein` (Levenshtein distance between your query and the extracted title)
+- `Detail` (what follows the first `:` in the document, truncated to 60 characters). The column is
+  printed only when at least one result has such a detail, so collections whose document is the bare
+  label keep the five-column table they had. On `t2slocations` this column is the point of the
+  exercise: Paris in France and Paris in Texas share a title, and only the detail tells them apart.
+
+### The two locations collections
+
+Two collections hold places, and they are not interchangeable:
+
+- **`locations`** (command `location`) is the legacy one, keyed on the Wikidata QID
+  (`locationid_<QID>_<lang>`), its document being the bare label. API 1.1.18 reads it. It goes away
+  with EMBEDDING-UPDATE-010, once 1.1.18 is decommissioned.
+- **`t2slocations`** (command `t2slocation`) is the read-model one, keyed on `ID_LOCATION`
+  (`t2slocationid_<ID_LOCATION>_<lang>`), its document being `<name>: <type word>, <Wikidata
+  description>`. API 1.1.19 reads it.
+
+`t2slocations` is opened with `get_collection`, **never** `get_or_create_collection`: its HNSW
+configuration (`space = l2`, `ef_search = 100`) is set at creation by process 216 of
+`embedding-update` and cannot be changed afterwards, so whichever program creates the collection
+first decides it for ever. Until that process has run, the CLI says so at startup and the
+`t2slocation` command stays disabled rather than creating the collection with the server defaults.
 
 #### Continue Searching in Current Collection
 

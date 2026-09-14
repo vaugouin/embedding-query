@@ -129,6 +129,27 @@ awards = CHROMADB_COLLECTIONS_BY_NAME["awards"]
 nominations = CHROMADB_COLLECTIONS_BY_NAME["nominations"]
 movements = CHROMADB_COLLECTIONS_BY_NAME["movements"]
 
+# EMBEDDING-UPDATE-005 : la collection des lieux du read-model T2S s'ouvre avec
+# get_collection, jamais avec get_or_create_collection. Sa configuration HNSW
+# (space l2, ef_search 100) est posee a la creation par le processus 216 d'
+# embedding-update et ne se change plus ensuite : le premier programme qui cree
+# la collection fixe sa configuration pour toujours, et un get_or_create ici la
+# recreerait en silence avec les defauts du serveur le jour ou elle manque.
+# Tant que 216 n'a pas tourne, la commande t2slocation reste desactivee plutot
+# que la collection creee a la legere. L'ancienne collection "locations", keyee
+# sur le QID, reste servie a cote pour l'API 1.1.18 jusqu'a EMBEDDING-UPDATE-010.
+try:
+    t2slocations = chroma_client.get_collection(
+        name="t2slocations",
+        embedding_function=embedding_function,
+    )
+    CHROMADB_COLLECTIONS_BY_NAME["t2slocations"] = t2slocations
+    print("Collection 't2slocations' opened (locations read-model, documents keyed on ID_LOCATION).")
+except Exception as e:
+    t2slocations = None
+    print(f"Collection 't2slocations' unavailable: {e}")
+    print("The 't2slocation' command stays disabled until process 216 of embedding-update has created it.")
+
 #Anonymized queries collection
 strentitycollection = "anonymizedqueries"
 anonymizedqueries = chroma_client.get_or_create_collection(
@@ -176,6 +197,16 @@ def f_searchembeddings(collection, strquery):
             title_part = doc.split(":", 1)[0]
             return title_part.strip()
 
+        # Ce qui suit le premier ":" du document, la ou il y en a un. Sur
+        # t2slocations c'est la seule chose qui separe Paris (France) de Paris
+        # (Texas) : les deux portent le meme titre, et une table qui n'afficherait
+        # que le titre rendrait deux lignes identiques a distance differente,
+        # soit l'ambiguite meme que cette collection a ete refaite pour lever.
+        def extract_detail(doc: str) -> str:
+            if not doc or ":" not in doc:
+                return ""
+            return doc.split(":", 1)[1].strip()
+
         rows = []
         for i in range(len(filtered_results["ids"][0])):
             doc_id = filtered_results["ids"][0][i]
@@ -190,38 +221,40 @@ def f_searchembeddings(collection, strquery):
                     "Title": title,
                     "Distance": f"{distance:.4f}",
                     "Levenshtein": str(lev),
+                    "Detail": extract_detail(document),
                 }
             )
 
-        max_title_len = 60
         headers = ["#", "ID", "Title", "Distance", "Levenshtein"]
+        # La colonne ne parait que si au moins un document porte un detail, pour
+        # que les collections au document reduit au libelle gardent leur table.
+        if any(r["Detail"] for r in rows):
+            headers.append("Detail")
+        alignments = {
+            "#": ">",
+            "ID": "<",
+            "Title": "<",
+            "Distance": ">",
+            "Levenshtein": ">",
+            "Detail": "<",
+        }
+        max_lengths = {"Title": 60, "Detail": 60}
         widths = {h: len(h) for h in headers}
         for r in rows:
             for h in headers:
                 value = r[h]
-                if h == "Title" and len(value) > max_title_len:
-                    value = value[: max_title_len - 1] + "…"
+                max_length = max_lengths.get(h)
+                if max_length and len(value) > max_length:
+                    value = value[: max_length - 1] + "…"
                     r[h] = value
                 widths[h] = max(widths[h], len(value))
 
-        header_line = (
-            f"{headers[0]:>{widths['#']}}  "
-            f"{headers[1]:<{widths['ID']}}  "
-            f"{headers[2]:<{widths['Title']}}  "
-            f"{headers[3]:>{widths['Distance']}}  "
-            f"{headers[4]:>{widths['Levenshtein']}}"
-        )
+        header_line = "  ".join(f"{h:{alignments[h]}{widths[h]}}" for h in headers)
         print(header_line)
         print("-" * len(header_line))
 
         for r in rows:
-            print(
-                f"{r['#']:>{widths['#']}}  "
-                f"{r['ID']:<{widths['ID']}}  "
-                f"{r['Title']:<{widths['Title']}}  "
-                f"{r['Distance']:>{widths['Distance']}}  "
-                f"{r['Levenshtein']:>{widths['Levenshtein']}}"
-            )
+            print("  ".join(f"{r[h]:{alignments[h]}{widths[h]}}" for h in headers))
         print("\n")
     else:
         print(f"No results found for {collection}: {strquery}")
@@ -303,6 +336,7 @@ def print_available_commands():
     print("  company <search terms> - search in companies collection")
     print("  network <search terms> - search in networks collection")
     print("  location <search terms> - search in locations collection")
+    print("  t2slocation <search terms> - search in t2slocations collection (locations read-model)")
     print("  character <search terms> - search in characters collection")
     print("  group <search terms>   - search in groups collection")
     print("  list <search terms>    - search in lists collection")
@@ -577,6 +611,13 @@ while True:
         elif words and words[0].lower() == "location":
             current_search_type = "location"
             current_collection = locations
+            strquery = " ".join(words[1:]).strip()
+        elif words and words[0].lower() == "t2slocation":
+            if t2slocations is None:
+                print("Collection 't2slocations' is unavailable: run process 216 of embedding-update first.")
+                continue
+            current_search_type = "t2slocation"
+            current_collection = t2slocations
             strquery = " ".join(words[1:]).strip()
         elif words and words[0].lower() == "character":
             current_search_type = "character"

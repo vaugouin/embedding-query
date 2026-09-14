@@ -17,7 +17,7 @@ Deeper specs live in their own files:
 `embedding-query` is one stage of **Agent BBB**, a multi-repository movie/TV database system owned by GitHub user `vaugouin`. All sibling repos live under `%USERPROFILE%/Code/<repo>` and at `github.com/vaugouin/<repo>`; they are interdependent stages of one pipeline that converges on a shared MySQL/MariaDB database (`T_WC_*` tables) and a ChromaDB vector store. The canonical roster of sibling repositories is kept in `%USERPROFILE%/Nestor/projets/t2s-backlog/topics/related-repositories.txt` (documentation repo `Nestor`, outside `Code/`).
 
 Pipeline stages:
-- **Infrastructure** — `python` (shared crawler base image), `chromadb` (vector service), `reverseproxy` (NGINX TLS ingress), `chromadb-security-test` (firewall validation).
+- **Infrastructure** — `python` (shared crawler base image), `chromadb` (vector service), `reverseproxy` (NGINX TLS ingress), `chromadb-security-test` (firewall validation), `tools` (host-side operational scripts for the shared MariaDB: backups per perimeter, one-off `.sql` runs; **private repo**, it documents where the database lives and how it is restored).
 - **Acquisition** — `tmdb-crawler`, `imdb-crawler`, `sparql-crawler`, `sparql-movies-persons`, `wikidata-crawler`, `wikipedia-crawler`, `selenium-tmdb`, `download-images`, `sqlite-plex-to-tmdb`, `movieparadise`.
 - **Preprocessing → `T_WC_T2S_*`** — `tmdb-movie-preprocess`, `tmdb-person-preprocess`, `keywords-processing`.
 - **Semantic index & name resolution** — `embedding-update`, `embedding-query`, `rapidfuzz_query`.
@@ -46,6 +46,27 @@ Edit at the right layer; the architecture is intentionally split.
 - **Docstrings**: Google-style on public functions.
 - **Error handling**: broad try/except with console logging; surface failures via the `error` response field and the `messages` trace. Database execution errors are not returned directly to clients — they go through the complex-question retry path when enabled.
 - **JSON serialization**: use `logs.decimal_serializer()` for `Decimal` and `datetime`.
+
+---
+
+## Collections: what an agent must not undo
+
+**⚠ `t2slocations` is opened with `get_collection`, never with `get_or_create_collection`.** Its HNSW
+configuration (`space = l2`, `ef_search = 100`) is written at creation by process 216 of
+`embedding-update` and cannot be changed afterwards; the first program to create the collection
+decides it for every reader, for ever. A `get_or_create` here would silently recreate it with the
+server defaults on the day it is missing, and nothing would report the drift: searches would simply
+rank worse. The fifteen legacy collections keep their `get_or_create_collection` because they were
+created that way and live on the server defaults. Same rule in `fastapi-text2sql`.
+
+The startup therefore tolerates the collection being absent: it prints why and disables the
+`t2slocation` command, rather than creating it. This is the expected state before the first run of
+process 216.
+
+**Two collections hold places**, and they must not be merged by an agent tidying up:
+`locations` (keyed on the Wikidata QID, bare label as document) serves API 1.1.18 and disappears with
+EMBEDDING-UPDATE-010; `t2slocations` (keyed on `ID_LOCATION`, document `<name>: <type word>,
+<description>`) serves API 1.1.19.
 
 ---
 
