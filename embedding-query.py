@@ -361,6 +361,17 @@ def print_current_settings():
     print(f"  SEARCH_N_RESULTS           = {SEARCH_N_RESULTS}")
     print(f"  SEARCH_SIMILARITY_THRESHOLD = {SEARCH_SIMILARITY_THRESHOLD}")
 
+COLLECTION_TABLE_HEADERS = [
+    "Name",
+    "Count",
+    "Index",
+    "Space",
+    "ef_search",
+    "ef_constr",
+    "M",
+    "Embedder",
+]
+
 def print_available_collections():
     def _safe_str(value):
         try:
@@ -421,6 +432,46 @@ def print_available_collections():
             pass
         return info
 
+    # La configuration de l'index vit dans `configuration_json` sur un serveur Chroma 1.x,
+    # et dans les cles `hnsw:*` de `metadata` sur une collection creee par un client
+    # anterieur. Lire les deux est ce qui permet a une seule table de decrire les
+    # collections creees d'une facon comme de l'autre. Elle se lit ici et nulle part
+    # ailleurs, parce qu'une configuration ne se change plus apres la creation : c'est le
+    # seul endroit ou l'on peut constater ce qui a ete fige, notamment `space`.
+    def _extract_configuration(collection_obj):
+        configuration = getattr(collection_obj, "configuration_json", None)
+        if callable(configuration):
+            try:
+                configuration = configuration()
+            except Exception:
+                configuration = None
+        if not isinstance(configuration, dict):
+            configuration = {}
+        return configuration
+
+    def _extract_index_settings(configuration, metadata):
+        for index_name in ("hnsw", "spann"):
+            candidate = configuration.get(index_name)
+            if isinstance(candidate, dict):
+                return index_name, candidate
+        if any(k.startswith("hnsw:") for k in metadata.keys()):
+            return "hnsw", {
+                "space": metadata.get("hnsw:space"),
+                "ef_search": metadata.get("hnsw:search_ef"),
+                "ef_construction": metadata.get("hnsw:construction_ef"),
+                "max_neighbors": metadata.get("hnsw:M"),
+            }
+        return "unknown", {}
+
+    def _extract_embedder(configuration):
+        embedder = configuration.get("embedding_function")
+        if isinstance(embedder, dict):
+            embedder = embedder.get("name") or embedder.get("type")
+        return embedder
+
+    def _value(raw):
+        return "unknown" if raw is None else _safe_str(raw)
+
     try:
         collections = chroma_client.list_collections()
     except Exception as e:
@@ -443,78 +494,64 @@ def print_available_collections():
             collection_obj = entry
 
         if collection_obj is None:
-            rows.append(
-                {
-                    "Name": name,
-                    "Count": "unknown",
-                    "Index": "unknown",
-                    "Distance": "unknown",
-                }
-            )
+            rows.append({h: "unknown" for h in COLLECTION_TABLE_HEADERS} | {"Name": name})
             continue
 
         metadata = _extract_metadata(collection_obj)
+        configuration = _extract_configuration(collection_obj)
+        index_used, index_settings = _extract_index_settings(configuration, metadata)
 
         try:
             count = collection_obj.count()
         except Exception:
-            count = "unknown"
-
-        index_used = metadata.get("index") or metadata.get("index_type") or metadata.get("chroma:index")
-        if index_used is None:
-            index_used = "hnsw" if any(k.startswith("hnsw:") for k in metadata.keys()) else "unknown"
-
-        distance_function = (
-            metadata.get("hnsw:space")
-            or metadata.get("distance")
-            or metadata.get("distance_function")
-            or metadata.get("metric")
-            or "unknown"
-        )
+            count = None
 
         rows.append(
             {
                 "Name": name,
-                "Count": _safe_str(count),
-                "Index": _safe_str(index_used),
-                "Distance": _safe_str(distance_function),
+                "Count": _value(count),
+                "Index": _value(index_used),
+                "Space": _value(index_settings.get("space")),
+                "ef_search": _value(index_settings.get("ef_search")),
+                "ef_constr": _value(index_settings.get("ef_construction")),
+                "M": _value(index_settings.get("max_neighbors")),
+                "Embedder": _value(_extract_embedder(configuration)),
             }
         )
 
-    headers = ["Name", "Count", "Index", "Distance"]
+    alignments = {
+        "Name": "<",
+        "Count": ">",
+        "Index": "<",
+        "Space": "<",
+        "ef_search": ">",
+        "ef_constr": ">",
+        "M": ">",
+        "Embedder": "<",
+    }
+    max_lengths = {"Name": 30, "Index": 10, "Space": 12, "Embedder": 28}
+    headers = list(COLLECTION_TABLE_HEADERS)
     widths = {h: len(h) for h in headers}
-    max_name_len = 30
-    max_index_len = 10
-    max_distance_len = 12
 
     for r in rows:
-        if len(r["Name"]) > max_name_len:
-            r["Name"] = r["Name"][: max_name_len - 1] + "…"
-        if len(r["Index"]) > max_index_len:
-            r["Index"] = r["Index"][: max_index_len - 1] + "…"
-        if len(r["Distance"]) > max_distance_len:
-            r["Distance"] = r["Distance"][: max_distance_len - 1] + "…"
+        for h in headers:
+            value = r.get(h, "unknown")
+            max_length = max_lengths.get(h)
+            if max_length and len(value) > max_length:
+                value = value[: max_length - 1] + "…"
+            r[h] = value
+            widths[h] = max(widths[h], len(value))
 
-        widths["Name"] = max(widths["Name"], len(r["Name"]))
-        widths["Count"] = max(widths["Count"], len(r["Count"]))
-        widths["Index"] = max(widths["Index"], len(r["Index"]))
-        widths["Distance"] = max(widths["Distance"], len(r["Distance"]))
-
-    header_line = (
-        f"{headers[0]:<{widths['Name']}}  "
-        f"{headers[1]:>{widths['Count']}}  "
-        f"{headers[2]:<{widths['Index']}}  "
-        f"{headers[3]:<{widths['Distance']}}"
-    )
+    header_line = "  ".join(f"{h:{alignments[h]}{widths[h]}}" for h in headers)
     print(header_line)
+    print("-" * len(header_line))
 
     for r in rows:
-        print(
-            f"{r['Name']:<{widths['Name']}}  "
-            f"{r['Count']:>{widths['Count']}}  "
-            f"{r['Index']:<{widths['Index']}}  "
-            f"{r['Distance']:<{widths['Distance']}}"
-        )
+        print("  ".join(f"{r[h]:{alignments[h]}{widths[h]}}" for h in headers))
+
+    print("\nSpace, ef_search, ef_constr and M are set when the collection is created and cannot be")
+    print("changed afterwards; a collection whose space is not the one its builder intended has to")
+    print("be dropped and rebuilt. t2slocations is expected to read: hnsw, l2, 100, 100, 16.")
 
 print_available_commands()
 

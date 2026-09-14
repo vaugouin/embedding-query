@@ -225,9 +225,21 @@ setting display
 The `setting collections` command prints a compact table (one row per collection) with aligned columns:
 
 - `Name`
-- `Count`
-- `Index`
-- `Distance`
+- `Count` (documents in the collection)
+- `Index` (`hnsw`, `spann`, or `unknown`)
+- `Space` (the distance function: `l2`, `cosine`, `ip`)
+- `ef_search` (how many candidates a query explores; too low a value can miss an exact match)
+- `ef_constr` (`ef_construction`, the build-time counterpart)
+- `M` (`max_neighbors`, the graph's connectivity)
+- `Embedder` (the embedding function recorded in the collection's configuration)
+
+These values are read from `configuration_json` on a ChromaDB 1.x server, and from the legacy
+`hnsw:*` metadata keys on a collection created by an older client, so collections built either way
+appear in the same table. **They are set when the collection is created and cannot be changed
+afterwards**, which is why this listing matters: a collection whose `space` is not the one its
+builder intended has to be dropped and rebuilt, and nothing else in the stack will say so. There is
+no error at query time, only worse ranking. `t2slocations` is expected to read `hnsw`, `l2`, `100`,
+`100`, `16`; the CLI prints that reminder under the table.
 
 ## Docker Deployment
 
