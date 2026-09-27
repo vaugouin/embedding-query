@@ -24,7 +24,7 @@ Pipeline stages:
 - **Serving** — `fastapi-text2sql` (NL→SQL API + MCP server), `voice-agent`, `tmdb-front` (PHP web front-end).
 - **Evaluation** — `eval-text2sql`, `extract-movie-questions`.
 - **Maintenance & tooling** — `plex-duplicates`, `subtitle-translate`, `powershell`, `playwright-test`.
-- **Monitoring & observability** — `data-monitoring`.
+- **Monitoring & observability** — `data-monitoring`, `pipeline-3d` (three.js replay of one question's execution trace through `voice-agent` and `fastapi-text2sql`).
 
 **This repository's role:** Semantic-index tooling. Interactive CLI that runs similarity searches against the ChromaDB collections maintained by `embedding-update` (via the `chromadb` service) — used to test and validate the same semantic search that `fastapi-text2sql` performs at query time.
 
