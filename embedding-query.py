@@ -552,6 +552,9 @@ def print_available_collections():
     print("\nSpace, ef_search, ef_constr and M are set when the collection is created and cannot be")
     print("changed afterwards; a collection whose space is not the one its builder intended has to")
     print("be dropped and rebuilt. t2slocations is expected to read: hnsw, l2, 100, 100, 16.")
+    print("Read these values as effective, not as recorded: the chromadb client fills whatever a")
+    print("collection did not store with its own defaults (l2, 100, 100, 16), so identical rows")
+    print("across collections can mean 'nothing was stored' as much as 'set to this'.")
 
 print_available_commands()
 

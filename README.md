@@ -241,6 +241,16 @@ builder intended has to be dropped and rebuilt, and nothing else in the stack wi
 no error at query time, only worse ranking. `t2slocations` is expected to read `hnsw`, `l2`, `100`,
 `100`, `16`; the CLI prints that reminder under the table.
 
+**Read the numbers as effective, not as recorded.** The `chromadb` client fills whatever a collection
+did not store with its own defaults (`l2`, `ef_search` 100, `ef_construction` 100, `max_neighbors`
+16, see `collection_configuration.py`), so a column reading the same value for every collection can
+mean "nothing was stored" as much as "set to this". Collections created by a 0.4.x client stored
+nothing and ran with `search_ef` 10 at the time, yet will display 100 here. What the table does prove
+is the effective configuration a query runs under now, which is what you want when checking that a
+collection is not misconfigured. `Embedder` reads `legacy` for every collection built by this stack,
+because the OpenAI embedding function is a client-side class that Chroma records under that marker
+rather than by name.
+
 ## Docker Deployment
 
 Never bake secrets into the Docker image. Do not copy `.env` into the image.
