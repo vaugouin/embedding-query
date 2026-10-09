@@ -94,6 +94,8 @@ print(f"Memory Usage: {memory_info.percent}%")
 # Create or load entity collections with the custom embedding function
 CHROMADB_COLLECTIONS_BY_NAME = {
     name: chroma_client.get_or_create_collection(name=name, embedding_function=embedding_function)
+    # "locations" (keyed on the QID) was deleted on 2026-10-09 with API 1.1.18 (EMBEDDING-UPDATE-010):
+    # places are searched in t2slocations, command t2slocation.
     # "persons" was deleted on 2026-10-09: person names are resolved with rapidfuzz on
     # T_WC_T2S_PERSON / T_WC_T2S_PERSON_ALSO_KNOWN_AS (see the rapidfuzz_query tool).
     for name in [
@@ -102,7 +104,6 @@ CHROMADB_COLLECTIONS_BY_NAME = {
         "companies",
         "networks",
         "topics",
-        "locations",
         "groups",
         "characters",
         "lists",
@@ -121,7 +122,6 @@ companies = CHROMADB_COLLECTIONS_BY_NAME["companies"]
 networks = CHROMADB_COLLECTIONS_BY_NAME["networks"]
 characters = CHROMADB_COLLECTIONS_BY_NAME["characters"]
 groups = CHROMADB_COLLECTIONS_BY_NAME["groups"]
-locations = CHROMADB_COLLECTIONS_BY_NAME["locations"]
 lists = CHROMADB_COLLECTIONS_BY_NAME["lists"]
 collections = CHROMADB_COLLECTIONS_BY_NAME["collections"]
 deaths = CHROMADB_COLLECTIONS_BY_NAME["deaths"]
@@ -335,7 +335,7 @@ def print_available_commands():
     print("  person <search terms>  - retired 2026-10-09, use rapidfuzz_query (person / aka)")
     print("  company <search terms> - search in companies collection")
     print("  network <search terms> - search in networks collection")
-    print("  location <search terms> - search in locations collection")
+    print("  location <search terms> - retired 2026-10-09, use t2slocation")
     print("  t2slocation <search terms> - search in t2slocations collection (locations read-model)")
     print("  character <search terms> - search in characters collection")
     print("  group <search terms>   - search in groups collection")
@@ -650,9 +650,9 @@ while True:
             current_collection = networks
             strquery = " ".join(words[1:]).strip()
         elif words and words[0].lower() == "location":
-            current_search_type = "location"
-            current_collection = locations
-            strquery = " ".join(words[1:]).strip()
+            # The QID-keyed "locations" collection was deleted on 2026-10-09 (EMBEDDING-UPDATE-010).
+            print("The locations collection no longer exists: use the t2slocation command.")
+            continue
         elif words and words[0].lower() == "t2slocation":
             if t2slocations is None:
                 print("Collection 't2slocations' is unavailable: run process 216 of embedding-update first.")

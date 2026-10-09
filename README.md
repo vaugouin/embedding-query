@@ -7,7 +7,6 @@ A powerful command-line interface for searching through various embedding collec
 - **Semantic Search**: Leverage OpenAI's text-embedding-3-large model for advanced similarity-based searches
 - **Multiple Collections**: Search across different entity types:
   - Topics
-  - Locations (legacy `locations`, keyed on the Wikidata QID, served to API 1.1.18)
   - Locations read-model (`t2slocations`, keyed on `ID_LOCATION`, command `t2slocation`)
   - Movies
   - TV Series
@@ -128,8 +127,7 @@ Enter your topic search query: company warner bros
 # Search networks
 Enter your topic search query: network netflix
 
-# Search locations (legacy collection, keyed on the Wikidata QID)
-Enter your topic search query: location paris
+# Locations: the legacy QID-keyed collection was deleted on 2026-10-09, use t2slocation below
 
 # Search the locations read-model (keyed on ID_LOCATION, document "<name>: <type>, <description>")
 Enter your topic search query: t2slocation paris
@@ -186,9 +184,9 @@ Columns:
 
 Two collections hold places, and they are not interchangeable:
 
-- **`locations`** (command `location`) is the legacy one, keyed on the Wikidata QID
-  (`locationid_<QID>_<lang>`), its document being the bare label. API 1.1.18 reads it. It goes away
-  with EMBEDDING-UPDATE-010, once 1.1.18 is decommissioned.
+- **`locations`** (command `location`) was the legacy one, keyed on the Wikidata QID
+  (`locationid_<QID>_<lang>`), read by API 1.1.18 only. **Deleted on 2026-10-09**
+  (EMBEDDING-UPDATE-010), Blue and 1.1.18 being retired; the command now says so.
 - **`t2slocations`** (command `t2slocation`) is the read-model one, keyed on `ID_LOCATION`
   (`t2slocationid_<ID_LOCATION>_<lang>`), its document being `<name>: <type word>, <Wikidata
   description>`. API 1.1.19 reads it.
