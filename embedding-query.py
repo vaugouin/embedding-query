@@ -94,8 +94,9 @@ print(f"Memory Usage: {memory_info.percent}%")
 # Create or load entity collections with the custom embedding function
 CHROMADB_COLLECTIONS_BY_NAME = {
     name: chroma_client.get_or_create_collection(name=name, embedding_function=embedding_function)
+    # "persons" was deleted on 2026-10-09: person names are resolved with rapidfuzz on
+    # T_WC_T2S_PERSON / T_WC_T2S_PERSON_ALSO_KNOWN_AS (see the rapidfuzz_query tool).
     for name in [
-        "persons",
         "movies",
         "series",
         "companies",
@@ -116,7 +117,6 @@ CHROMADB_COLLECTIONS_BY_NAME = {
 topics = CHROMADB_COLLECTIONS_BY_NAME["topics"]
 movies = CHROMADB_COLLECTIONS_BY_NAME["movies"]
 series = CHROMADB_COLLECTIONS_BY_NAME["series"]
-persons = CHROMADB_COLLECTIONS_BY_NAME["persons"]
 companies = CHROMADB_COLLECTIONS_BY_NAME["companies"]
 networks = CHROMADB_COLLECTIONS_BY_NAME["networks"]
 characters = CHROMADB_COLLECTIONS_BY_NAME["characters"]
@@ -332,7 +332,7 @@ def print_available_commands():
     print("  topic <search terms>   - search in topics collection")
     print("  movie <search terms>   - search in movies collection")
     print("  serie <search terms>   - search in series collection")
-    print("  person <search terms>  - search in persons collection")
+    print("  person <search terms>  - retired 2026-10-09, use rapidfuzz_query (person / aka)")
     print("  company <search terms> - search in companies collection")
     print("  network <search terms> - search in networks collection")
     print("  location <search terms> - search in locations collection")
@@ -637,9 +637,10 @@ while True:
             current_collection = series
             strquery = " ".join(words[1:]).strip()
         elif words and words[0].lower() == "person":
-            current_search_type = "person"
-            current_collection = persons
-            strquery = " ".join(words[1:]).strip()
+            # The persons collection was deleted on 2026-10-09 (never queried by the API).
+            print("The persons collection no longer exists: person names are resolved with rapidfuzz, "
+                  "try the rapidfuzz_query tool (commands person / aka).")
+            continue
         elif words and words[0].lower() == "company":
             current_search_type = "company"
             current_collection = companies

@@ -120,8 +120,7 @@ Enter your topic search query: movie inception
 # Search series
 Enter your topic search query: serie breaking bad
 
-# Search persons
-Enter your topic search query: person christopher nolan
+# Persons: retired 2026-10-09 (collection deleted), use rapidfuzz_query (person / aka)
 
 # Search companies
 Enter your topic search query: company warner bros
