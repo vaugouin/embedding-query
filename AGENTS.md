@@ -51,7 +51,7 @@ Edit at the right layer; the architecture is intentionally split.
 
 ## Collections: what an agent must not undo
 
-**⚠ `t2slocations` is opened with `get_collection`, never with `get_or_create_collection`.** Its HNSW
+**⚠ `t2slocations` and `t2ssourceworks` (process 217) are opened with `get_collection`, never with `get_or_create_collection`.** Its HNSW
 configuration (`space = l2`, `ef_search = 100`) is written at creation by process 216 of
 `embedding-update` and cannot be changed afterwards; the first program to create the collection
 decides it for every reader, for ever. A `get_or_create` here would silently recreate it with the

@@ -8,6 +8,7 @@ A powerful command-line interface for searching through various embedding collec
 - **Multiple Collections**: Search across different entity types:
   - Topics
   - Locations read-model (`t2slocations`, keyed on `ID_LOCATION`, command `t2slocation`)
+  - Source works read-model (`t2ssourceworks`, keyed on `ID_SOURCE_WORK`, command `t2ssourcework`): the works movies and series are based on
   - Movies
   - TV Series
   - Persons
@@ -190,8 +191,13 @@ Two collections hold places, and they are not interchangeable:
 - **`t2slocations`** (command `t2slocation`) is the read-model one, keyed on `ID_LOCATION`
   (`t2slocationid_<ID_LOCATION>_<lang>`), its document being `<name>: <type word>, <Wikidata
   description>`. API 1.1.19 reads it.
+- **`t2ssourceworks`** (command `t2ssourcework`) holds the works movies and series are based on
+  (Wikidata P144, `T_WC_T2S_SOURCE_WORK`), keyed on `ID_SOURCE_WORK`
+  (`t2ssourceworkid_<ID_SOURCE_WORK>_<lang>`), its document being `<name>: <form or type word>,
+  <year>, <Wikidata description>`. Built by process 217 of `embedding-update`, same rules as
+  `t2slocations` below.
 
-`t2slocations` is opened with `get_collection`, **never** `get_or_create_collection`: its HNSW
+`t2slocations` (and `t2ssourceworks`) is opened with `get_collection`, **never** `get_or_create_collection`: its HNSW
 configuration (`space = l2`, `ef_search = 100`) is set at creation by process 216 of
 `embedding-update` and cannot be changed afterwards, so whichever program creates the collection
 first decides it for ever. Until that process has run, the CLI says so at startup and the

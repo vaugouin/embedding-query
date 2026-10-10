@@ -150,6 +150,21 @@ except Exception as e:
     print(f"Collection 't2slocations' unavailable: {e}")
     print("The 't2slocation' command stays disabled until process 216 of embedding-update has created it.")
 
+# t2ssourceworks : the works movies and series are based on (T_WC_T2S_SOURCE_WORK, process 217 of
+# embedding-update, EMBEDDING-UPDATE-011). Read with get_collection for the same reason as
+# t2slocations: the builder alone sets its configuration.
+try:
+    t2ssourceworks = chroma_client.get_collection(
+        name="t2ssourceworks",
+        embedding_function=embedding_function,
+    )
+    CHROMADB_COLLECTIONS_BY_NAME["t2ssourceworks"] = t2ssourceworks
+    print("Collection 't2ssourceworks' opened (source works read-model, documents keyed on ID_SOURCE_WORK).")
+except Exception as e:
+    t2ssourceworks = None
+    print(f"Collection 't2ssourceworks' unavailable: {e}")
+    print("The 't2ssourcework' command stays disabled until process 217 of embedding-update has created it.")
+
 #Anonymized queries collection
 strentitycollection = "anonymizedqueries"
 anonymizedqueries = chroma_client.get_or_create_collection(
@@ -337,6 +352,7 @@ def print_available_commands():
     print("  network <search terms> - search in networks collection")
     print("  location <search terms> - retired 2026-10-09, use t2slocation")
     print("  t2slocation <search terms> - search in t2slocations collection (locations read-model)")
+    print("  t2ssourcework <search terms> - search in t2ssourceworks collection (works movies and series are based on)")
     print("  character <search terms> - search in characters collection")
     print("  group <search terms>   - search in groups collection")
     print("  list <search terms>    - search in lists collection")
@@ -551,7 +567,7 @@ def print_available_collections():
 
     print("\nSpace, ef_search, ef_constr and M are set when the collection is created and cannot be")
     print("changed afterwards; a collection whose space is not the one its builder intended has to")
-    print("be dropped and rebuilt. t2slocations is expected to read: hnsw, l2, 100, 100, 16.")
+    print("be dropped and rebuilt. t2slocations and t2ssourceworks are expected to read: hnsw, l2, 100, 100, 16.")
     print("Read these values as effective, not as recorded: the chromadb client fills whatever a")
     print("collection did not store with its own defaults (l2, 100, 100, 16), so identical rows")
     print("across collections can mean 'nothing was stored' as much as 'set to this'.")
@@ -659,6 +675,13 @@ while True:
                 continue
             current_search_type = "t2slocation"
             current_collection = t2slocations
+            strquery = " ".join(words[1:]).strip()
+        elif words and words[0].lower() == "t2ssourcework":
+            if t2ssourceworks is None:
+                print("Collection 't2ssourceworks' is unavailable: run process 217 of embedding-update first.")
+                continue
+            current_search_type = "t2ssourcework"
+            current_collection = t2ssourceworks
             strquery = " ".join(words[1:]).strip()
         elif words and words[0].lower() == "character":
             current_search_type = "character"
