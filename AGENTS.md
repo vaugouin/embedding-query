@@ -1,98 +1,31 @@
 # AGENTS.md - Agent Guide for Embedding Query
 
-This file gives you the agentic context you need to work on this codebase safely. For project overview, features, install / deploy steps and human-facing security / performance / troubleshooting material, read @README.md — that file is canonical and not duplicated here.
-
-This is the single canonical guide for autonomous coding agents in this repository. Assistant-specific files such as @CLAUDE.md, and any future tool-specific guide such as `GEMINI.md`, should only point here and should not duplicate repository instructions.
-
-Deeper specs live in their own files:
-
-- For any project update, keep documentation aligned:
-  - Update `README.md` for user-facing behavior, configuration, setup, deployment, troubleshooting, or verification changes.
-  - Update this file only when agent workflow or safety context changes.
+Canonical agent guide for this repo (`CLAUDE.md` and any other tool-specific file only point here). Overview, commands, collections, configuration, Docker and troubleshooting are in @README.md. Update `README.md` for user-facing changes, this file only when agent workflow or safety context changes.
 
 ---
 
 ## Related repositories (project ecosystem)
 
-`embedding-query` is one stage of **Agent BBB**, a multi-repository movie/TV database system owned by GitHub user `vaugouin`. All sibling repos live under `%USERPROFILE%/Code/<repo>` and at `github.com/vaugouin/<repo>`; they are interdependent stages of one pipeline that converges on a shared MySQL/MariaDB database (`T_WC_*` tables) and a ChromaDB vector store. The canonical roster of sibling repositories is kept in `%USERPROFILE%/Nestor/projets/t2s-backlog/topics/related-repositories.txt` (documentation repo `Nestor`, outside `Code/`).
-
-Pipeline stages:
-- **Infrastructure** — `chromadb` (vector service), `reverseproxy` (NGINX TLS ingress), `chromadb-security-test` (firewall validation), `tools` (host-side operational scripts for the shared MariaDB: backups per perimeter, one-off `.sql` runs; **private repo**, it documents where the database lives and how it is restored).
-- **Acquisition** — `tmdb-crawler`, `imdb-crawler`, `sparql-crawler`, `sparql-movies-persons`, `wikidata-crawler`, `wikipedia-crawler`, `selenium-tmdb`, `download-images`, `sqlite-plex-to-tmdb`, `movieparadise`, `open-credits` (crowdsourced OCR of on-screen credits into `T_WC_OC_*`).
-- **Preprocessing → `T_WC_T2S_*`** — `tmdb-movie-preprocess`, `tmdb-person-preprocess`, `keywords-processing`.
-- **Semantic index & name resolution** — `embedding-update`, `embedding-query`, `rapidfuzz_query`.
-- **Serving** — `fastapi-text2sql` (NL→SQL API + MCP server), `voice-agent`, `tmdb-front` (PHP web front-end).
-- **Evaluation** — `text2sql-eval`, `extract-movie-questions`.
-- **Maintenance & tooling** — `plex-duplicates`, `subtitle-translate`, `powershell`, `playwright-test`, `manual-refresh` (one-entity TMDb + Wikipedia refresh console, formerly `python`).
-- **Monitoring & observability** — `data-monitoring`, `pipeline-3d` (three.js replay of one question's execution trace through `voice-agent` and `fastapi-text2sql`).
-
-**This repository's role:** Semantic-index tooling. Interactive CLI that runs similarity searches against the ChromaDB collections maintained by `embedding-update` (via the `chromadb` service) — used to test and validate the same semantic search that `fastapi-text2sql` performs at query time.
+Semantic-index tooling of **Agent BBB** (`github.com/vaugouin/<repo>`, cloned under `%USERPROFILE%/Code/<repo>`): an interactive CLI that runs similarity searches against the ChromaDB collections built by `embedding-update` (served by `chromadb`), to test the same semantic search `fastapi-text2sql` performs at query time. Roster: `%USERPROFILE%/Nestor/projets/t2s-backlog/topics/related-repositories.txt`; stage map: `tmdb-front/AGENTS.md` § Related repositories.
 
 ---
 
-## Where things live (file → role)
-
-Edit at the right layer; the architecture is intentionally split.
-
 ## Code conventions
 
-- **Hungarian notation** for variables (legacy style):
-  - `str` — strings (`strtablename`, `strapiversion`)
-  - `lng` — integers (`lngpage`, `lngrowsperpage`)
-  - `dbl` — floats (`dblavailableram`)
-  - `arr` — lists / arrays
-  - `int` — boolean-like flags (`intcleanupenabled`, `intentity`)
-- **Function naming**: public pipeline entry points use `f_` (`f_text2sql`, `f_entity_extraction`, `f_resolve_complex_question`, `f_answer_single_value`, `f_hello_world`); private helpers use `_` (`_call_chat_llm`, `_normalize_llm_model`).
-- **Docstrings**: Google-style on public functions.
-- **Error handling**: broad try/except with console logging; surface failures via the `error` response field and the `messages` trace. Database execution errors are not returned directly to clients — they go through the complex-question retry path when enabled.
-- **JSON serialization**: use `logs.decimal_serializer()` for `Decimal` and `datetime`.
+- **Hungarian notation** for variables (legacy style): `str` strings, `lng` integers, `dbl` floats, `arr` lists, `int` boolean-like flags. Functions use the `f_` prefix.
+- Keep Markdown, prompts, JSON config and logs UTF-8 (non-ASCII names); avoid tools that rewrite them with mojibake.
 
 ---
 
 ## Collections: what an agent must not undo
 
-**⚠ `t2slocations` and `t2ssourceworks` (process 217) are opened with `get_collection`, never with `get_or_create_collection`.** Its HNSW
-configuration (`space = l2`, `ef_search = 100`) is written at creation by process 216 of
-`embedding-update` and cannot be changed afterwards; the first program to create the collection
-decides it for every reader, for ever. A `get_or_create` here would silently recreate it with the
-server defaults on the day it is missing, and nothing would report the drift: searches would simply
-rank worse. The fifteen legacy collections keep their `get_or_create_collection` because they were
-created that way and live on the server defaults. Same rule in `fastapi-text2sql`.
-
-The startup therefore tolerates the collection being absent: it prints why and disables the
-`t2slocation` command, rather than creating it. This is the expected state before the first run of
-process 216.
-
-**Two collections hold places**, and they must not be merged by an agent tidying up:
-`locations` (keyed on the Wikidata QID, bare label as document) serves API 1.1.18 and disappears with
-EMBEDDING-UPDATE-010; `t2slocations` (keyed on `ID_LOCATION`, document `<name>: <type word>,
-<description>`) serves API 1.1.19.
+**⚠ `t2slocations` and `t2ssourceworks` are opened with `get_collection`, never `get_or_create_collection`.** Their HNSW configuration is set at creation by `embedding-update` (processes 216/217) and can never change, so whoever creates first decides it for every reader; a `get_or_create` here would silently recreate a missing collection with server defaults, and nothing would report it (searches just rank worse). Same rule in `fastapi-text2sql`. The legacy collections keep `get_or_create_collection` (created that way, on server defaults). When the collection is absent, startup says why and disables the command instead of creating it. Details: README § The two locations collections.
 
 ---
 
-## Encoding
-
-Keep Markdown, prompt files, JSON config, and logs UTF-8. These files contain non-ASCII names and multilingual examples. Avoid editor or terminal operations that rewrite them with mojibake.
-
----
-
-## Build & deployment (Docker)
-
-The query CLI is built and run as a Docker container via the repo's `Dockerfile` (base image `python:3.12-slim-bookworm`, `PYTHONUNBUFFERED=1`). It installs `requirements.txt`, copies the repo, and runs `CMD ["python", "embedding-query.py"]`. No ports or volumes are exposed; it reaches the `chromadb` service over the network using runtime configuration.
-
----
-
-**Last Updated**: 2026-06-03
-**Current Version**: 1.0.1 
+**Last Updated**: 2026-10-31
+**Current Version**: 1.0.2 
 
 ## Backlog (Nestor second-brain)
 
-The prioritized, agent-ready implementation backlog for this repo lives in the **Nestor**
-knowledge repo (a separate repo, not cloned alongside this one):
-
-- This repo: `C:\Users\vaugo\Nestor\projets\t2s-backlog\repos\embedding-query.md`
-- Cross-repo dashboard: `C:\Users\vaugo\Nestor\projets\t2s-backlog\index.md`
-
-Consult it before implementing: tasks are `EMBEDDING-QUERY-NNN` with status (done / in-progress /
-todo), priority, and quick-wins. NOTE: these are local paths on Philippe's PC and do not
-resolve on the VPS or on cloud agents (claude.ai/code).
+Backlog (`EMBEDDING-QUERY-NNN`, status and priority) in the Nestor repo: `C:\Users\vaugo\Nestor\projets\t2s-backlog\repos\embedding-query.md` (dashboard: `...\t2s-backlog\index.md`). Consult it before implementing. Local paths on Philippe's PC only; they do not resolve on the VPS or cloud agents.

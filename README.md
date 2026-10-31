@@ -1,6 +1,6 @@
 # Embedding Query
 
-A powerful command-line interface for searching through various embedding collections using ChromaDB and OpenAI's text-embedding-3-large model. This tool enables semantic search across multiple categories including topics, movies, series, persons, companies, networks, and user queries.
+A powerful command-line interface for searching through various embedding collections using ChromaDB and OpenAI's text-embedding-3-large model. This tool enables semantic search across multiple categories including topics, movies, series, places, source works, companies, networks, and user queries.
 
 ## Features
 
@@ -11,7 +11,7 @@ A powerful command-line interface for searching through various embedding collec
   - Source works read-model (`t2ssourceworks`, keyed on `ID_SOURCE_WORK`, command `t2ssourcework`): the works movies and series are based on
   - Movies
   - TV Series
-  - Persons
+  - Persons (retired 2026-10-09, collection deleted: the `person` command points to `rapidfuzz_query`)
   - Companies
   - Networks
   - Characters
@@ -68,7 +68,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 # ChromaDB server configuration
 CHROMADB_HOST=localhost
-CHROMADB_PORT=8000
+CHROMADB_PORT=8100
 ```
 
 ### 4. Configure Settings
@@ -106,6 +106,8 @@ python embedding-query.py
 
 ### Search Commands
 
+The prompt names the current collection (`topic` at startup). `help` prints the list of commands; `quit`, `exit` or `q` leaves.
+
 The application supports context-aware searches. You can switch between collections and perform searches:
 
 #### Switch Collection and Search
@@ -132,6 +134,9 @@ Enter your topic search query: network netflix
 
 # Search the locations read-model (keyed on ID_LOCATION, document "<name>: <type>, <description>")
 Enter your topic search query: t2slocation paris
+
+# Search the source-works read-model (keyed on ID_SOURCE_WORK)
+Enter your topic search query: t2ssourcework heart of darkness
 
 # Search characters
 Enter your topic search query: character walter white
@@ -272,6 +277,8 @@ docker run -it --rm --network="host" \
   embedding-query
 ```
 
+On the VPS, `start.sh` builds the image as `embedding-query-python-app` and runs it the same way, with the `config.ini` baked into the image (no bind mount).
+
 ## Configuration Reference
 
 Search settings:
@@ -298,7 +305,7 @@ List settings:
 Check ChromaDB connectivity:
 
 ```bash
-curl http://${CHROMADB_HOST}:${CHROMADB_PORT}/api/v1/heartbeat
+curl http://${CHROMADB_HOST}:${CHROMADB_PORT}/api/v2/heartbeat
 ```
 
 Check that `OPENAI_API_KEY` is present in your environment.
