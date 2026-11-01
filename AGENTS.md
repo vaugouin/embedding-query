@@ -1,5 +1,9 @@
 # AGENTS.md - Agent Guide for Embedding Query
 
+## Canary
+
+Start every reply with "Philippe,": no exceptions, including short replies and tool summaries.
+
 Canonical agent guide for this repo (`CLAUDE.md` and any other tool-specific file only point here). Overview, commands, collections, configuration, Docker and troubleshooting are in @README.md. Update `README.md` for user-facing changes, this file only when agent workflow or safety context changes.
 
 ---
@@ -24,7 +28,7 @@ Semantic-index tooling of **Agent BBB** (`github.com/vaugouin/<repo>`, cloned un
 ---
 
 **Last Updated**: 2026-10-31
-**Current Version**: 1.0.2 
+**Current Version**: 1.0.3 
 
 ## Backlog (Nestor second-brain)
 
