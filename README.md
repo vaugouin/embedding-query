@@ -1,6 +1,6 @@
 # Embedding Query
 
-A powerful command-line interface for searching through various embedding collections using ChromaDB and OpenAI's text-embedding-3-large model. This tool enables semantic search across multiple categories including topics, movies, series, places, source works, companies, networks, and user queries.
+A powerful command-line interface for searching through various embedding collections using ChromaDB and OpenAI's text-embedding-3-large model. This tool enables semantic search across multiple categories including topics, movies, series, places, source works, and user queries.
 
 ## Features
 
@@ -12,8 +12,6 @@ A powerful command-line interface for searching through various embedding collec
   - Movies
   - TV Series
   - Persons (retired 2026-10-09, collection deleted: the `person` command points to `rapidfuzz_query`)
-  - Companies
-  - Networks
   - Characters
   - Groups
   - Lists
@@ -124,11 +122,7 @@ Enter your topic search query: serie breaking bad
 
 # Persons: retired 2026-10-09 (collection deleted), use rapidfuzz_query (person / aka)
 
-# Search companies
-Enter your topic search query: company warner bros
-
-# Search networks
-Enter your topic search query: network netflix
+# Companies and networks: retired 2026-11-07 (collections deleted), fastapi-text2sql resolves them with its in-memory lexicon
 
 # Locations: the legacy QID-keyed collection was deleted on 2026-10-09, use t2slocation below
 

@@ -27,8 +27,8 @@ Semantic-index tooling of **Agent BBB** (`github.com/vaugouin/<repo>`, cloned un
 
 ---
 
-**Last Updated**: 2026-10-31
-**Current Version**: 1.0.3 
+**Last Updated**: 2026-11-07
+**Current Version**: 1.0.4 
 
 ## Backlog (Nestor second-brain)
 

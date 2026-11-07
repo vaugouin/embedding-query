@@ -96,13 +96,13 @@ CHROMADB_COLLECTIONS_BY_NAME = {
     name: chroma_client.get_or_create_collection(name=name, embedding_function=embedding_function)
     # "locations" (keyed on the QID) was deleted on 2026-10-09 with API 1.1.18 (EMBEDDING-UPDATE-010):
     # places are searched in t2slocations, command t2slocation.
+    # "companies" and "networks" were deleted on 2026-11-07 (FASTAPI-TEXT2SQL-360): the API resolves
+    # company and network names with its in-memory lexicon on T_WC_T2S_COMPANY / T_WC_T2S_NETWORK.
     # "persons" was deleted on 2026-10-09: person names are resolved with rapidfuzz on
     # T_WC_T2S_PERSON / T_WC_T2S_PERSON_ALSO_KNOWN_AS (see the rapidfuzz_query tool).
     for name in [
         "movies",
         "series",
-        "companies",
-        "networks",
         "topics",
         "groups",
         "characters",
@@ -118,8 +118,6 @@ CHROMADB_COLLECTIONS_BY_NAME = {
 topics = CHROMADB_COLLECTIONS_BY_NAME["topics"]
 movies = CHROMADB_COLLECTIONS_BY_NAME["movies"]
 series = CHROMADB_COLLECTIONS_BY_NAME["series"]
-companies = CHROMADB_COLLECTIONS_BY_NAME["companies"]
-networks = CHROMADB_COLLECTIONS_BY_NAME["networks"]
 characters = CHROMADB_COLLECTIONS_BY_NAME["characters"]
 groups = CHROMADB_COLLECTIONS_BY_NAME["groups"]
 lists = CHROMADB_COLLECTIONS_BY_NAME["lists"]
@@ -348,8 +346,8 @@ def print_available_commands():
     print("  movie <search terms>   - search in movies collection")
     print("  serie <search terms>   - search in series collection")
     print("  person <search terms>  - retired 2026-10-09, use rapidfuzz_query (person / aka)")
-    print("  company <search terms> - search in companies collection")
-    print("  network <search terms> - search in networks collection")
+    print("  company <search terms> - retired 2026-11-07, names are resolved by the API lexicon")
+    print("  network <search terms> - retired 2026-11-07, names are resolved by the API lexicon")
     print("  location <search terms> - retired 2026-10-09, use t2slocation")
     print("  t2slocation <search terms> - search in t2slocations collection (locations read-model)")
     print("  t2ssourcework <search terms> - search in t2ssourceworks collection (works movies and series are based on)")
@@ -657,14 +655,11 @@ while True:
             print("The persons collection no longer exists: person names are resolved with rapidfuzz, "
                   "try the rapidfuzz_query tool (commands person / aka).")
             continue
-        elif words and words[0].lower() == "company":
-            current_search_type = "company"
-            current_collection = companies
-            strquery = " ".join(words[1:]).strip()
-        elif words and words[0].lower() == "network":
-            current_search_type = "network"
-            current_collection = networks
-            strquery = " ".join(words[1:]).strip()
+        elif words and words[0].lower() in ("company", "network"):
+            # The companies and networks collections were deleted on 2026-11-07 (FASTAPI-TEXT2SQL-360).
+            print("The companies and networks collections no longer exist: fastapi-text2sql resolves these "
+                  "names with its in-memory lexicon (title_lexicon.py) on T_WC_T2S_COMPANY / T_WC_T2S_NETWORK.")
+            continue
         elif words and words[0].lower() == "location":
             # The QID-keyed "locations" collection was deleted on 2026-10-09 (EMBEDDING-UPDATE-010).
             print("The locations collection no longer exists: use the t2slocation command.")
