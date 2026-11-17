@@ -10,7 +10,7 @@ Canonical agent guide for this repo (`CLAUDE.md` and any other tool-specific fil
 
 ## Related repositories (project ecosystem)
 
-Semantic-index tooling of **Agent BBB** (`github.com/vaugouin/<repo>`, cloned under `%USERPROFILE%/Code/<repo>`): an interactive CLI that runs similarity searches against the ChromaDB collections built by `embedding-update` (served by `chromadb`), to test the same semantic search `fastapi-text2sql` performs at query time. Roster: `%USERPROFILE%/Nestor/projets/t2s-backlog/topics/related-repositories.txt`; stage map: `tmdb-front/AGENTS.md` § Related repositories.
+Semantic-index tooling of **Cinephile App** (`github.com/vaugouin/<repo>`, cloned under `%USERPROFILE%/Code/<repo>`): an interactive CLI that runs similarity searches against the ChromaDB collections built by `embedding-update` (served by `chromadb`), to test the same semantic search `fastapi-text2sql` performs at query time. Roster: `%USERPROFILE%/Nestor/projets/t2s-backlog/topics/related-repositories.txt`; stage map: `tmdb-front/AGENTS.md` § Related repositories.
 
 ---
 
